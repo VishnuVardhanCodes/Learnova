@@ -11,7 +11,7 @@ export async function POST(request) {
     const decodedToken = await verifyFirebaseToken(token);
 
     if (!decodedToken) {
-      return Response.json({ message: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Parse request body
@@ -32,13 +32,16 @@ export async function POST(request) {
 
     return Response.json(
       {
-        message: "Exception request created successfully",
-        id: result.insertedId,
+        success: true,
+        data: {
+          id: result.insertedId,
+          message: "Exception request created successfully",
+        },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Exception creation error:", error);
-    return Response.json({ message: "Internal server error" }, { status: 500 });
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
