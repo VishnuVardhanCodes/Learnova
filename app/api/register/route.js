@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import { randomUUID } from "crypto";
 import { connectDb } from "@/lib/mongodb";
 import { jsonError, jsonSuccess } from "@/lib/api-response";
+import { suggestEmailCorrection } from "@/utils/emailValidation";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -39,8 +40,15 @@ export async function POST(req) {
     }
 
     if (!EMAIL_PATTERN.test(email)) {
-      return jsonError("Invalid email address", 400);
-    }
+  const suggestion = suggestEmailCorrection(email);
+
+  return jsonError(
+    suggestion
+      ? `Invalid email address. Did you mean ${suggestion}?`
+      : "Invalid email address",
+    400
+  );
+}
 
     if (file.size > MAX_FILE_SIZE) {
       return jsonError("File size exceeds 5MB limit", 400);
