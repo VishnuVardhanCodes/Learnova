@@ -723,13 +723,15 @@ useEffect(() => {
                   </Link>
                 </Button>
               )}
-              <div className="text-center">
-                <p className="text-foreground/40 text-xs">
-                  © {new Date().getFullYear()} Learnova. All rights reserved.
-                </p>
-              </div>
+            <div className="text-center">
+              <p className="text-foreground/40 text-xs">
+                © {new Date().getFullYear()} Learnova. All rights reserved.
+              </p>
             </div>
           </div>
+        </div>
+      )}
+
     </>
   );
 }
