@@ -41,7 +41,6 @@ const AttendanceHeatmap = dynamic(
     loading: () => <ChartSkeleton variant="heatmap" />,
   }
 );
-import { weeklySchedule, mockRecentActivity } from "@/constants/mockData";
 import AttendanceAnalytics from "./dashboard/AttendanceAnalytics";
 import StreakCounter from "./gamification/StreakCounter";
 import XpProgressBar from "./gamification/XpProgressBar";
