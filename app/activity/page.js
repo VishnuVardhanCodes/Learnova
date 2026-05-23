@@ -605,10 +605,25 @@ export default function ActivityPage() {
             <Reveal delay={0.1}>
               <div className="bg-card backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-border hover:border-accent/20 transition-all duration-300">
                 <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-foreground flex items-center">
-                    <Filter className="w-5 h-5 mr-3 text-accent" />
-                    Filter Activities
-                  </h3>
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-xl font-semibold text-foreground flex items-center">
+                      <Filter className="w-5 h-5 mr-3 text-accent" />
+                      Filter Activities
+                    </h3>
+                    {(selectedCategory !== "all" || selectedLevel !== "all" || searchQuery !== "") && (
+                      <button
+                        onClick={() => {
+                          setSelectedCategory("all");
+                          setSelectedLevel("all");
+                          setSearchQuery("");
+                        }}
+                        className="text-xs font-medium text-muted-foreground hover:text-accent transition-colors flex items-center gap-1 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/10"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Clear
+                      </button>
+                    )}
+                  </div>
                   <div className="w-full sm:w-auto flex items-center space-x-2 bg-background rounded-full px-4 py-2 border border-border">
                     <Search className="w-4 h-4 text-gray-400" />
                     <input

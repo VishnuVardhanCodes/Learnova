@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { analytics, db } from "@/lib/firebaseConfig";
 import { logEvent } from "firebase/analytics";
+import { updateProfile } from "firebase/auth";
 import Image from "next/image";
+import toast from "react-hot-toast";
 import {
   doc,
   getDoc,
@@ -13,6 +15,7 @@ import {
   getDocs,
   orderBy,
   limit,
+  updateDoc,
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +57,14 @@ export default function UniversalProfile() {
   const { user, loading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.photoURL) {
+      setAvatarUrl(user.photoURL);
+    }
+  }, [user]);
 
   // Role state fetched from Firestore
   const [role, setRole] = useState("student");
@@ -112,8 +122,59 @@ export default function UniversalProfile() {
     fileInputRef.current?.click();
   };
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_SIZE) {
+      toast.error("File size exceeds the 5MB limit. Please select a smaller file.");
+      e.target.value = "";
+      return;
+    }
+
+    const loadingToast = toast.loading("Uploading profile picture...");
+
+    try {
+      const token = await user.getIdToken();
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/images", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to upload image");
+      }
+
+      const data = await res.json();
+      if (data.success && data.url) {
+        // Update Firebase Auth profile
+        await updateProfile(user, { photoURL: data.url });
+
+        // Update Firestore profile
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, { photoURL: data.url });
+
+        // Update local state
+        setAvatarUrl(data.url);
+        toast.success("Profile picture updated successfully!", { id: loadingToast });
+      } else {
+        throw new Error(data.error || "Upload failed");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to update profile picture.", { id: loadingToast });
+    }
+  };
+
   const getUserPhoto = () => {
-    return user?.photoURL || null;
+    return avatarUrl || user?.photoURL || null;
   };
 
   const getUserInitials = (name) => {
@@ -559,6 +620,7 @@ export default function UniversalProfile() {
                 ref={fileInputRef}
                 className="hidden"
                 accept="image/*"
+                onChange={handleFileChange}
               />
             </div>
 
