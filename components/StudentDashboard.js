@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 
@@ -67,6 +67,19 @@ const StudentDashboard = () => {
   const [isAttendanceWindow, setIsAttendanceWindow] = useState(false);
   const [gamificationData, setGamificationData] = useState(null);
   const [viewMode, setViewMode] = useState("heatmap");
+
+  const attendanceStats = useMemo(() => {
+    const stats = { present: 0, absent: 0, late: 0, total: 0, percentage: 0 };
+    recentActivity.forEach((act) => {
+      const status = act.status ? String(act.status).toLowerCase() : "";
+      if (status === "present") stats.present += 1;
+      else if (status === "absent") stats.absent += 1;
+      else if (status === "late") stats.late += 1;
+    });
+    stats.total = stats.present + stats.absent + stats.late;
+    stats.percentage = stats.total > 0 ? Math.round(((stats.present + stats.late * 0.5) / stats.total) * 100) : 0;
+    return stats;
+  }, [recentActivity]);
 
   useEffect(() => {
     const fetchGamification = async () => {
@@ -293,11 +306,11 @@ const StudentDashboard = () => {
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="flex flex-col gap-6 flex-1">
                 <div className="flex gap-4 items-center">
-                  <StreakCounter currentStreak={gamificationData.currentStreak} />
+                  <StreakCounter currentStreak={Number(gamificationData.currentStreak) || 0} />
                   <div className="flex-1">
                     <XpProgressBar 
-                      currentLevel={gamificationData.currentLevel} 
-                      currentXp={gamificationData.totalXp} 
+                      currentLevel={Number(gamificationData.currentLevel) || 1} 
+                      currentXp={Number(gamificationData.totalXp) || 0} 
                     />
                   </div>
                 </div>

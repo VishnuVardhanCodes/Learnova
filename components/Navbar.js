@@ -1,10 +1,24 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
+
+import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
+
 import { useNotifications } from "@/hooks/useNotifications";
+
 import { useTheme } from "next-themes";
+
+import { useAuthContext } from "@/contexts/AuthContext";
+
 import {
   Menu,
   X,
@@ -22,30 +36,36 @@ import {
   Sun,
   Moon,
   Keyboard,
+  Languages, // Added for the translation button icon
 } from "lucide-react";
-import { useAuthContext } from "@/contexts/AuthContext";
-import Image from "next/image";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false); // Language dropdown state
+  const [currentLang, setCurrentLang] = useState("English"); // Tracks selected language
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
-  // Hook Integration: Connects actual hooks & destructured operations
   const {
     notifications,
     unreadCount,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
   } = useNotifications();
 
-  const { user, userProfile, signOut, isAuthenticated } = useAuthContext();
+  const {
+    user,
+    userProfile,
+    signOut,
+    isAuthenticated,
+  } = useAuthContext();
 
   const dropdownRef = useRef(null);
+  const langRef = useRef(null); // Ref to track language dropdown outside clicks
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [prefersDark, setPrefersDark] = useState(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -65,37 +85,15 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
-  // Detect system preference on mount so initial render matches user's OS
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      const update = (e) => setPrefersDark(e.matches);
-      if (mq.addEventListener) mq.addEventListener("change", update);
-      else mq.addListener && mq.addListener(update);
-      return () => {
-        if (mq.removeEventListener) mq.removeEventListener("change", update);
-        else mq.removeListener && mq.removeListener(update);
-      };
-    } catch (e) {
-      // ignore
-    }
-  }, []);
-
-  const scrollProgressValue = Number.isFinite(scrollProgress) ? scrollProgress : 0;
-
-  // Scroll Effect
   useEffect(() => {
     const handleScroll = () => {
-      const progress = Math.min(window.scrollY / 100, 1);
-      setScrollProgress(progress);
+      setScrollProgress(Math.min(window.scrollY / 100, 1));
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close dropdown on outside click
   const handleClickOutside = useCallback((event) => {
     if (
       dropdownRef.current &&
@@ -105,6 +103,14 @@ export function Navbar() {
       setIsDropdownOpen(false);
       setIsNotificationOpen(false);
     }
+    // Close language selector if clicking outside
+    if (
+      langRef.current &&
+      event.target &&
+      !langRef.current.contains(event.target)
+    ) {
+      setIsLangOpen(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -112,27 +118,24 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleClickOutside]);
 
-  // ESC Key Support
   useEffect(() => {
-    const close = () => {
+    const closeMenus = () => {
       setIsDropdownOpen(false);
       setIsNotificationOpen(false);
       setIsMenuOpen(false);
+      setIsLangOpen(false);
     };
-    const handleEscape = (event) => {
-      if (event.key === "Escape") close();
+
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        closeMenus();
+      }
     };
 
     window.addEventListener("keydown", handleEscape);
-    window.addEventListener("learnova:escape", close);
-
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-      window.removeEventListener("learnova:escape", close);
-    };
+    return () => window.removeEventListener("keydown", handleEscape);
   }, []);
 
-  // Prevent body scroll
   useEffect(() => {
     if (isMenuOpen) {
       document.body.classList.add("overflow-hidden");
@@ -142,11 +145,11 @@ export function Navbar() {
     return () => document.body.classList.remove("overflow-hidden");
   }, [isMenuOpen]);
 
-  // Close menus on route change
   useEffect(() => {
     setIsMenuOpen(false);
     setIsDropdownOpen(false);
     setIsNotificationOpen(false);
+    setIsLangOpen(false);
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -155,7 +158,6 @@ export function Navbar() {
     await signOut();
   };
 
-  // Helpers
   const getUserInitials = (name) => {
     if (!name) return "U";
     return name
@@ -193,6 +195,7 @@ export function Navbar() {
 
   const navigationItems = [
     { href: "/", label: "Home", icon: Home },
+    { href: "/productivity", label: "Focus", icon: Sparkles },
     { href: "/activity", label: "Activities", icon: Activity },
     { href: "/contact", label: "Contact", icon: Mail },
   ];
@@ -203,6 +206,8 @@ export function Navbar() {
     { href: "/settings", icon: Settings, label: "Settings", key: "settings" },
   ].filter((item) => !(item.key === "dashboard" && item.href === "/profile"));
 
+  const languagesList = ["English", "Español", "Français", "Deutsch", "हिन्दी"];
+
   const handleImageError = (e) => {
     const img = e.target;
     const fallback = img.parentElement?.querySelector(".fallback-avatar");
@@ -212,146 +217,159 @@ export function Navbar() {
     }
   };
 
+  const scrollProgressValue =
+  Number.isFinite(scrollProgress)
+    ? scrollProgress
+    : 0;
+  
   return (
     <>
+      {/* Background Dimming Layer on Scroll */}
       <div
-        className="fixed w-full top-0 z-[60] h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none transition-opacity duration-300"
-        style={{ opacity: scrollProgressValue > 0 ? 0 : 1 }}
+        className="fixed w-full top-0 z-[60] h-24 bg-gradient-to-b from-black/60 via-black/10 to-transparent pointer-events-none transition-opacity duration-300"
+        style={{ opacity: 1 - scrollProgressValue * 0.5 }}
       />
 
       {/* Main Navbar */}
       <nav
-        className={`fixed z-[70] transition-all duration-500 ease-out left-1/2 -translate-x-1/2 flex items-center ${scrollProgressValue > 0
-          ? "top-0 w-full max-w-full rounded-none h-16 border-b shadow-sm"
-          : "top-6 w-[90%] max-w-6xl rounded-full h-16 border shadow-2xl"
-          }`}
+        className="fixed w-full top-0 left-0 right-0 z-[70] transition-all duration-300 ease-out"
         style={{
-          backgroundColor: !mounted
-            ? "rgba(255, 255, 255, 0.8)"
-            : theme === "dark"
-              ? scrollProgressValue > 0 ? "rgba(15, 23, 42, 0.85)" : "rgba(15, 23, 42, 0.65)"
-              : scrollProgressValue > 0 ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.7)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderColor: !mounted
-            ? "rgba(0, 0, 0, 0.05)"
-            : theme === "dark"
-              ? "rgba(255, 255, 255, 0.08)"
-              : "rgba(0, 0, 0, 0.05)",
+          // Use resolved theme when mounted; otherwise fall back to system preference
+          backgroundColor:
+            (mounted ? resolvedTheme : prefersDark ? "dark" : "light") === "dark"
+              ? `rgba(0,0,0,${0.82 + scrollProgressValue * 0.12})`
+              : `rgba(255,255,255,0.98)`,
+          backdropFilter: `blur(20px)`,
+          WebkitBackdropFilter: `blur(20px)`,
+          borderBottom:
+            (mounted ? resolvedTheme : prefersDark ? "dark" : "light") === "dark"
+              ? `1px solid rgba(255,255,255,0.1)`
+              : `1px solid rgba(0,0,0,0.08)`,
         }}
       >
-        <div className="w-full px-5 sm:px-8 relative h-full flex items-center">
-          <div className="flex justify-between items-center w-full h-full">
-            <Link href="/" className="flex items-center space-x-3 group" onClick={() => setIsMenuOpen(false)}>
-              <div className={`bg-gradient-to-br from-accent to-blue-500 rounded-xl flex items-center justify-center transition-all duration-300 ${scrollProgressValue > 0 ? 'w-8 h-8' : 'w-10 h-10'}`}>
-                <BookOpen className={`text-white transition-all duration-300 ${scrollProgressValue > 0 ? 'w-4 h-4' : 'w-5 h-5'}`} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="flex justify-between items-center h-16">
+            
+            {/* Logo Group */}
+            <Link href="/" className="flex items-center space-x-3 group">
+              <div className="bg-blue-600 dark:bg-blue-500 p-2.5 rounded-xl text-white shadow-sm transition-all duration-200 group-hover:scale-102">
+                <BookOpen className="h-5 w-5" />
               </div>
-              <div className="flex flex-col justify-center">
-                <span className={`font-bold tracking-tight text-gray-950 dark:text-white leading-none transition-all duration-300 ${scrollProgressValue > 0 ? 'text-lg' : 'text-xl'}`}>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50 block leading-tight">
                   Learnova
                 </span>
-                <span className={`text-accent dark:text-blue-400 uppercase tracking-widest font-bold transition-all duration-300 ${scrollProgressValue > 0 ? 'text-[8px] mt-0.5' : 'text-[10px] mt-1'}`}>
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-widest font-black mt-0.5 leading-none">
                   Premium
-                </span>
+                </p>
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden sm:flex items-center space-x-1 absolute left-1/2 -translate-x-1/2">
-              <div className="flex items-center space-x-1 bg-gray-900/5 dark:bg-white/5 p-1.5 rounded-full border border-gray-200/50 dark:border-white/10 backdrop-blur-md">
-                {navigationItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`px-5 py-1.5 rounded-full text-sm transition-all duration-300 ${isActive
-                        ? "bg-white dark:bg-gray-800 text-gray-950 dark:text-white font-semibold shadow-sm"
-                        : "text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10 font-medium"
-                        }`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
+            {/* Center Navigation Capsule */}
+            <div className="hidden sm:flex items-center space-x-1 bg-zinc-100/80 dark:bg-zinc-900/50 border border-zinc-200/30 dark:border-zinc-800/30 rounded-2xl p-1">
+              {navigationItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`text-sm font-bold tracking-wide px-5 py-2 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? "bg-accent/20 text-gray-950 dark:text-white font-medium"
+                        : "text-gray-900 dark:text-gray-50 hover:text-gray-950 dark:hover:text-white hover:bg-accent/10"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
             </div>
 
-            {/* Desktop Controls */}
+            {/* Right Group Controls */}
             <div className="hidden sm:flex items-center space-x-3">
+              
+              {/* Language Selector Dropdown */}
+              <div className="relative" ref={langRef}>
+                <button
+                  onClick={() => setIsLangOpen(!isLangOpen)}
+                  className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors border border-zinc-200/40 dark:border-zinc-800/50"
+                  aria-label="Select language"
+                >
+                  <Languages className="h-4 w-4 text-zinc-400" />
+                  <span className="hidden md:inline">{currentLang}</span>
+               <ChevronDown
+  className="h-3.5 w-3.5 text-zinc-400 transition-transform duration-200"
+  style={{
+    transform: isLangOpen
+      ? "rotate(180deg)"
+      : "none",
+  }}
+/></button>
+
+                {isLangOpen && (
+                  <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1 z-[80]">
+                    {languagesList.map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          setCurrentLang(lang);
+                          setIsLangOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          currentLang === lang
+                            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-white font-bold"
+                            : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                        }`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Theme Toggle */}
               {mounted && (
                 <button
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-2.5 rounded-full text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white hover:bg-gray-900/5 dark:hover:bg-white/10 transition-all duration-300 border border-transparent hover:border-gray-200/50 dark:hover:border-white/10"
+                  className="p-2 rounded-xl text-gray-900 dark:text-gray-50 hover:text-gray-950 dark:hover:text-white hover:bg-accent/10 transition-all duration-300 cursor-pointer"
+                  aria-label="Toggle theme"
                 >
                   {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
               )}
 
               {isAuthenticated ? (
-                <div className="flex items-center space-x-2 pl-3 border-l border-gray-200/50 dark:border-white/10">
-                  <Button asChild className="hidden lg:flex relative bg-gradient-to-r from-accent to-blue-500 hover:from-accent/90 hover:to-blue-600 text-white font-medium shadow-lg hover:shadow-xl hover:shadow-accent/30 transition-all duration-300 hover:-translate-y-0.5 rounded-full px-5 h-9 group overflow-hidden">
-                    <Link href="/attendance">
-                      <span className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <span className="relative flex items-center text-sm">
-                        Attendance
-                        <Sparkles className="ml-2 h-3.5 w-3.5 transition-all duration-300 group-hover:scale-110" />
-                      </span>
-                    </Link>
-                  </Button>
-
-                  {/* Notifications */}
+                <div className="flex items-center space-x-3 pl-1 border-l border-zinc-200 dark:border-zinc-800">
+                  
+                  {/* Notifications Module Panel */}
                   <div className="relative">
                     <button
                       onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                      className="relative p-2.5 rounded-full text-gray-600 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white hover:bg-gray-900/5 dark:hover:bg-white/10 transition-all duration-300 border border-transparent hover:border-gray-200/50 dark:hover:border-white/10"
+                      className="relative p-2 rounded-xl text-gray-900 dark:text-gray-50 hover:text-gray-950 dark:hover:text-white hover:bg-accent/10 transition-all duration-300 cursor-pointer"
+                      aria-label="View notifications"
                     >
-                      <Bell className="h-4 w-4" />
-                      {unreadCount > 0 && (
-                        <span className="absolute top-1 right-1 bg-red-500 text-[10px] font-bold text-white rounded-full h-4 w-4 flex items-center justify-center animate-pulse border-2 border-white dark:border-gray-900">
-                          {unreadCount}
-                        </span>
-                      )}
+                      <Bell className="h-5 w-5" />
+                      {unreadCount > 0 && <span className="absolute top-2 right-2 bg-red-500 rounded-full h-2 w-2" />}
                     </button>
 
                     {isNotificationOpen && (
-                      <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl z-[52] overflow-hidden">
-                        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-                          <h3 className="text-gray-900 dark:text-white font-semibold text-sm">
-                            Notifications
-                          </h3>
+                      <div className="absolute right-0 mt-3 w-72 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-[80] overflow-hidden">
+                        <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50">
+                          <h3 className="text-zinc-900 dark:text-zinc-100 font-bold text-sm">Notifications</h3>
                           {unreadCount > 0 && (
-                            <button
-                              onClick={markAllAsRead}
-                              className="text-xs font-medium text-accent hover:text-accent/80 transition-colors"
-                            >
-                              Mark all read
+                            <button onClick={markAllAsRead} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                              Mark all as read
                             </button>
                           )}
                         </div>
-
-                        <div className="max-h-72 overflow-y-auto">
+                        <div className="max-h-60 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-900">
                           {notifications.length === 0 ? (
-                            <div className="p-6 text-center">
-                              <Bell className="h-8 w-8 mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-                              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                No notifications right now
-                              </p>
-                            </div>
+                            <div className="p-4 text-center text-sm text-zinc-400">No new notices</div>
                           ) : (
                             notifications.map((n) => (
-                              <div
-                                key={n.id}
-                                onClick={() => markAsRead(n.id)}
-                                className={`p-4 border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!n.read ? "bg-accent/5 dark:bg-accent/10" : ""
-                                  }`}
-                              >
-                                <p className="text-sm text-gray-900 dark:text-gray-100">
-                                  {n.message}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                                  {n.time}
-                                </p>
+                              <div key={n.id} onClick={() => markAsRead(n.id)} className={`p-3 text-left cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900/40 ${!n.read ? "bg-blue-50/30" : ""}`}>
+                                <p className="text-sm text-zinc-800 dark:text-zinc-200 line-clamp-2">{n.message}</p>
                               </div>
                             ))
                           )}
@@ -364,265 +382,180 @@ export function Navbar() {
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="flex items-center space-x-2 p-1 pr-3 rounded-full border border-gray-200/50 dark:border-white/10 hover:bg-gray-900/5 dark:hover:bg-white/5 transition-all duration-300"
+                      className="flex items-center space-x-3 p-2 rounded-xl text-gray-800 dark:text-gray-100 hover:text-gray-950 dark:hover:text-white hover:bg-accent/10 transition-all duration-300"
+                      aria-label="User profile menu"
+                      aria-haspopup="true"
+                      aria-expanded={isDropdownOpen}
                     >
-                      <div className="relative w-8 h-8">
+                      <div className="relative w-10 h-10">
                         {getUserPhoto() ? (
-                          <Image
-                            src={getUserPhoto()}
-                            alt="Profile"
-                            width={32}
-                            height={32}
-                            className="rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                            onError={handleImageError}
-                          />
+                          <Image src={getUserPhoto()} alt="Profile" width={32} height={32} className="rounded-full object-cover" onError={handleImageError} />
                         ) : (
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent via-blue-500 to-purple-500 flex items-center justify-center">
-                            <span className="text-xs font-bold text-white">
-                              {getUserInitials(getUserDisplayName())}
-                            </span>
+                          <div className="absolute inset-0 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
+                            {getUserInitials(getUserDisplayName())}
                           </div>
                         )}
                       </div>
-                      <ChevronDown
-                        className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""
-                          }`}
-                      />
+                      <ChevronDown className="h-4 w-4 text-zinc-400" />
                     </button>
 
                     {isDropdownOpen && (
-                      <div className="absolute right-0 mt-3 min-w-[240px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl shadow-2xl py-2 z-[52]">
-                        <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 mb-2">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                            {getUserDisplayName()}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            {getUserRole()}
-                          </p>
-                        </div>
+                      <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1 z-[80]">
                         {userMenuItems.map((item) => (
-                          <Link
-                            key={item.key}
-                            href={item.href}
-                            onClick={() => setIsDropdownOpen(false)}
-                            className="flex items-center px-5 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white transition-colors"
-                          >
-                            <item.icon className="h-4 w-4 mr-3 text-gray-400 dark:text-gray-500" />
-                            {item.label}
+                          <Link key={item.key} href={item.href} onClick={() => setIsDropdownOpen(false)} className="flex items-center px-4 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors">
+                            <item.icon className="h-4 w-4 mr-2.5 text-zinc-400" /> {item.label}
                           </Link>
                         ))}
-                        <div className="h-px bg-gray-100 dark:bg-gray-800 my-2" />
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center px-5 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                        >
-                          <LogOut className="h-4 w-4 mr-3" />
-                          Logout
+                        <hr className="my-1 border-zinc-100 dark:border-zinc-900" />
+                        <button onClick={handleLogout} className="w-full flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+                          <LogOut className="h-4 w-4 mr-2.5" /> Logout
                         </button>
                       </div>
                     )}
                   </div>
+
                 </div>
               ) : (
-                <div className="ml-2 pl-3 border-l border-gray-200/50 dark:border-white/10">
-                  <Button asChild className="relative bg-gradient-to-r from-accent to-blue-500 hover:from-accent/90 hover:to-blue-600 text-white font-medium shadow-lg hover:shadow-xl hover:shadow-accent/30 transition-all duration-300 hover:-translate-y-0.5 rounded-full px-6 h-10 group overflow-hidden">
-                    <Link href="/auth">
-                      <span className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <span className="relative flex items-center text-sm">
-                        Login / Signup
-                        <Sparkles className="ml-2 h-4 w-4 transition-all duration-300 group-hover:scale-110" />
-                      </span>
-                    </Link>
-                  </Button>
-                </div>
+                <Button 
+                  asChild 
+                  size="default" 
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-5 h-10 text-sm shadow-sm active:scale-98 transition-all"
+                >
+                  <Link href="/auth">
+                    <span className="flex items-center gap-2">
+                      Login
+                      <Sparkles className="h-4 w-4 text-blue-200" />
+                    </span>
+                  </Link>
+                </Button>
               )}
             </div>
 
-            {/* Mobile Toggle Controls */}
-            <div className="sm:hidden flex items-center gap-2">
-              {mounted && (
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-2 rounded-full text-gray-600 dark:text-gray-300 bg-gray-900/5 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 transition-colors"
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </button>
-              )}
+            {/* Mobile View Toggle Control Trigger */}
+            <div className="sm:hidden">
               <Button
                 variant="ghost"
                 size="sm"
+                aria-label="Toggle Menu"
+                aria-expanded={isMenuOpen}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 h-auto rounded-full text-gray-800 dark:text-gray-100 bg-gray-900/5 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 hover:bg-gray-900/10 dark:hover:bg-white/10 transition-colors"
+                className="text-gray-900 dark:text-gray-50 hover:text-accent hover:bg-accent/10 transition-all duration-300"
               >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {isMenuOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
               </Button>
             </div>
+                  </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Mobile Menu Overlay */}
-      <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[65] md:hidden transition-opacity duration-500 ${isMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        onClick={() => setIsMenuOpen(false)}
-      />
-
-      {/* Mobile Menu Dropdown Drawer */}
-      <div
-        className={`fixed z-[68] left-1/2 -translate-x-1/2 transition-all duration-500 ease-in-out md:hidden flex flex-col ${scrollProgressValue > 0 ? "w-full top-16" : "w-[90%] max-w-6xl top-[5.5rem]"
-          }`}
-      >
-        <div
-          className="grid transition-all duration-500 ease-in-out"
-          style={{
-            gridTemplateRows: isMenuOpen ? "1fr" : "0fr",
-            opacity: isMenuOpen ? 1 : 0,
-          }}
-        >
-          <div
-            className={`overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-gray-200/50 dark:border-white/10 shadow-2xl flex flex-col ${scrollProgressValue > 0 ? "rounded-b-3xl border-b border-x" : "rounded-3xl border mt-2"
-              }`}
-          >
-            <div className="min-h-0 overflow-y-auto max-h-[calc(100vh-8rem)] overscroll-contain flex flex-col">
-              {isAuthenticated && (
-                <div className="p-5 pb-2">
-                  <div className="flex items-center space-x-4 mb-5 p-4 rounded-3xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50">
-                    <div className="w-12 h-12 relative shrink-0">
-                      {getUserPhoto() ? (
-                        <Image
-                          src={getUserPhoto()}
-                          alt="Profile"
-                          width={48}
-                          height={48}
-                          className="rounded-full object-cover shadow-sm ring-2 ring-white dark:ring-gray-700"
-                          onError={handleImageError}
-                        />
-                      ) : (
-                        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-accent via-blue-500 to-purple-500 flex items-center justify-center ring-2 ring-white dark:ring-gray-700 shadow-sm">
-                          <span className="text-base font-bold text-white">
-                            {getUserInitials(getUserDisplayName())}
-                          </span>
-                        </div>
-                      )}
+      {/* Mobile Drawer Overlay Architecture */}
+      {isMenuOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[85]" onClick={() => setIsMenuOpen(false)} />
+          <div className="fixed top-4 right-4 max-w-[85vw] w-64 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-2xl shadow-xl p-4 space-y-4 z-[90] flex flex-col transition-all">
+            <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-900 pb-2">
+              <span className="font-bold text-sm text-zinc-400 uppercase tracking-wider">Menu</span>
+              <X className="h-5 w-5 text-zinc-400 cursor-pointer" onClick={() => setIsMenuOpen(false)} />
+            </div>
+            
+            {isAuthenticated && (
+              <div className="flex items-center space-x-3 p-2 bg-zinc-50 dark:bg-zinc-900/40 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
+                <div className="relative w-10 h-10 shrink-0">
+                  {getUserPhoto() ? (
+                    <Image src={getUserPhoto()} alt="Profile" width={40} height={40} className="rounded-full object-cover" onError={handleImageError} />
+                  ) : (
+                    <div className="absolute inset-0 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                      {getUserInitials(getUserDisplayName())}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-base text-gray-900 dark:text-white truncate">
-                        {getUserDisplayName()}
-                      </h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs truncate mb-1">
-                        {user?.email || ""}
-                      </p>
-                      <div className="inline-flex items-center px-2 py-0.5 bg-yellow-100 dark:bg-yellow-500/10 rounded-full border border-yellow-200 dark:border-yellow-500/20">
-                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-1.5" />
-                        <span className="text-[9px] text-yellow-700 dark:text-yellow-500 font-bold uppercase tracking-wider">
-                          {getUserRole()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-2">
-                    <Link
-                      href="/attendance"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group"
-                    >
-                      <UserCheck className="h-5 w-5 text-accent mb-2 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">Attendance</span>
-                    </Link>
-                    <Link
-                      href="/notices"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group"
-                    >
-                      <Bell className="h-5 w-5 text-blue-500 mb-2 group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">Notices</span>
-                    </Link>
-                  </div>
+                  )}
                 </div>
-              )}
-
-              <div className="px-5 py-4 space-y-6">
-                <div>
-                  <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 px-3">
-                    Navigation
-                  </h4>
-                  <div className="space-y-1">
-                    {navigationItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl group transition-colors"
-                      >
-                        <item.icon className="h-5 w-5 mr-4 text-gray-400 dark:text-gray-500 group-hover:text-accent transition-colors" />
-                        <span className="font-medium text-sm text-gray-700 dark:text-gray-200">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">{getUserDisplayName()}</h4>
+                  <p className="text-[11px] text-zinc-400 truncate">{getUserRole()}</p>
                 </div>
-
-                {isAuthenticated && (
-                  <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 px-3">
-                      Account
-                    </h4>
-                    <div className="space-y-1">
-                      {userMenuItems.map((item) => (
-                        <Link
-                          key={item.key}
-                          href={item.href}
-                          onClick={() => setIsMenuOpen(false)}
-                          className="flex items-center px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl group transition-colors"
-                        >
-                          <item.icon className="h-5 w-5 mr-4 text-gray-400 dark:text-gray-500 group-hover:text-accent transition-colors" />
-                          <span className="font-medium text-sm text-gray-700 dark:text-gray-200">{item.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
+            )}
 
-              <div className="p-5 mt-auto border-t border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/30">
-                {isAuthenticated ? (
-                  <Button
-                    className="w-full bg-white dark:bg-gray-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 border border-gray-200 dark:border-gray-700 font-semibold shadow-sm transition-all rounded-2xl py-6"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-5 w-5 mr-2" />
-                    Sign Out
-                  </Button>
-                ) : (
-                  <Button asChild className="w-full bg-gradient-to-r from-accent to-blue-500 hover:from-accent/90 hover:to-blue-600 text-white font-semibold shadow-lg transition-all rounded-2xl py-6">
-                    <Link href="/auth?mode=signup" onClick={() => setIsMenuOpen(false)}>
-                      <Sparkles className="h-5 w-5 mr-2" />
-                      Get Started
-                    </Link>
-                  </Button>
-                )}
+            {/* Mobile Nav Actions */}
+            <div className="flex flex-col space-y-1">
+              {navigationItems.map((item) => (
+                <Link key={item.href} href={item.href} onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                  <item.icon className="h-4 w-4 mr-2.5 text-zinc-400" />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
 
-                <div className="text-center space-y-3 pt-4">
+            {/* Mobile Language Selector */}
+            <div className="pt-2 border-t border-zinc-100 dark:border-zinc-900">
+              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 px-1">Language</span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {languagesList.slice(0, 4).map((lang) => (
                   <button
+                    key={lang}
                     onClick={() => {
+                      setCurrentLang(lang);
                       setIsMenuOpen(false);
-                      window.dispatchEvent(new CustomEvent("learnova:open-shortcuts"));
                     }}
-                    className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-accent dark:hover:text-accent transition-colors text-xs font-medium cursor-pointer bg-white dark:bg-gray-800 px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm"
+                    className={`text-xs p-2 rounded-xl border text-center transition-all ${
+                      currentLang === lang
+                        ? "bg-blue-600 text-white border-blue-600 font-bold"
+                        : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200/60 dark:border-zinc-800/60 text-zinc-600 dark:text-zinc-400"
+                    }`}
                   >
-                    <Keyboard className="h-3.5 w-3.5 text-accent" />
-                    <span>Keyboard Shortcuts</span>
+                    {lang}
                   </button>
-                  <p className="text-gray-400 dark:text-gray-600 text-[10px] font-medium">
-                    © {new Date().getFullYear()} Learnova. All rights reserved.
-                  </p>
-                </div>
+                ))}
               </div>
             </div>
+
+            {/* Account Specific Navigation */}
+            {isAuthenticated && (
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-900 space-y-1">
+                {userMenuItems.map((item) => (
+                  <Link key={item.key} href={item.href} onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                    <item.icon className="h-4 w-4 mr-2.5 text-zinc-400" />
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Primary Action Buttons */}
+            <div className="pt-2 border-t border-zinc-100 dark:border-zinc-900">
+              {isAuthenticated ? (
+                <Button onClick={handleLogout} variant="destructive" size="default" className="w-full text-white rounded-lg text-sm h-10">
+                  <LogOut className="h-4 w-4 mr-2" /> Logout
+                </Button>
+              ) : (
+                <Button asChild size="default" className="w-full bg-blue-600 text-white rounded-lg text-sm h-10">
+                  <Link href="/auth" onClick={() => setIsMenuOpen(false)}>
+                    <span className="flex items-center gap-2">
+                      Get Started <Sparkles className="h-4 w-4 text-blue-200" />
+                    </span>
+                  </Link>
+                </Button>
+              )}
+            </div>
+
+            {/* Shortcuts Footer */}
+            <div className="text-center space-y-2 pt-1">
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  window.dispatchEvent(new CustomEvent("learnova:open-shortcuts"));
+                }}
+                className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-blue-600 transition-colors text-xs"
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+                <span>Keyboard Shortcuts</span>
+              </button>
+              <p className="text-zinc-400/50 text-[10px]">© {new Date().getFullYear()} Learnova.</p>
+            </div>
+
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </>
   );
 }

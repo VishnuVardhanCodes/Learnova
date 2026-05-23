@@ -26,6 +26,9 @@ import {
   Users,
   TrendingUp,
   Award,
+  Timer,
+  CalendarDays,
+  ListTodo,
 } from "lucide-react";
 import Link from "next/link";
 import { analytics } from "@/lib/firebaseConfig";
@@ -166,7 +169,6 @@ const SectionBadge = ({
   </div>
 );
 
-
 const Reveal = ({ children, className = "", delay = 0, y = 28 }) => (
   <motion.div
     className={className}
@@ -208,6 +210,26 @@ const ActionButton = ({
     </button>
   );
 };
+
+// Reusable premium window mockup component for the graphic elements
+const MockupWindow = ({ children, gradientFrom }) => (
+  <div className="relative group p-1 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-md overflow-hidden shadow-2xl transition-all duration-500 hover:border-white/20">
+    {/* Dynamic Background Spotlight Radial Overlay on Card Hover */}
+    <div className={`absolute inset-0 bg-gradient-to-tr ${gradientFrom} to-transparent opacity-10 group-hover:opacity-30 transition-opacity duration-700 pointer-events-none`} />
+    
+    {/* Simulated App Header UI Bar */}
+    <div className="flex items-center gap-1.5 px-5 py-3.5 border-b border-white/5 bg-black/20">
+      <div className="w-2.5 h-2.5 rounded-full bg-rose-500/60" />
+      <div className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
+      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
+    </div>
+
+    {/* Showcase Core Work Area */}
+    <div className="p-8 bg-black/40 flex items-center justify-center min-h-[220px]">
+      {children}
+    </div>
+  </div>
+);
 
 export default function AboutPage() {
   const { theme } = useTheme();
@@ -319,19 +341,6 @@ export default function AboutPage() {
       <div className="min-h-screen relative z-50">
         <Navbar />
 
-        <div className="fixed top-24 right-6 z-[9999]">
-  <select
-    value={language}
-    onChange={(e) => setLanguage(e.target.value)}
-    className="bg-purple-600 text-white px-4 py-2 rounded-lg shadow-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400"
-    aria-label="Select language"
-  >
-    <option value="en">English</option>
-    <option value="hi">Hindi</option>
-  </select>
-</div>
-
-        
         {/* Hero Section */}
         <section
           id="hero"
@@ -394,82 +403,126 @@ export default function AboutPage() {
           </div>
         </section>
         <div className="mt-8 flex justify-center">
-  <a
-    href="#mission"
-    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-300"
-  >
-    {translations[language].explore}
-  </a>
-</div>
+          <a
+            href="#mission"
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-300"
+          >
+            {translations[language].explore}
+          </a>
+        </div>
 
-        {/* Mission Section */}
+        {/* Mission Section (Premium App-Frame Design Showcase) */}
         <section
           id="mission"
-          className="md:py-20 px-4 sm:px-6 lg:px-8 relative"
-        >
-          <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <Reveal className="space-y-8">
-                <SectionBadge icon={Sparkles} text={translations[language].mission} />
+          className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+          >
+          <div className="max-w-6xl mx-auto">
+            {/* Minimal High-End Intro Header */}
+            <Reveal className="mb-24 max-w-2xl">
+              <SectionBadge icon={Sparkles} text={translations[language].mission} />
+              <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white mt-4 mb-6">
+                Empowering Educational Excellence
+              </h2>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                At Learnova, our mission is to harness the power of technology to make education more efficient, engaging, and equitable. We build modern workflows to replace age-old fragmentation.
+              </p>
+            </Reveal>
 
-                <h2 className="text-2xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-accent bg-clip-text text-transparent">
-                  Empowering Educational Excellence
-                </h2>
-
-                <div className="space-y-6">
-                  <p className="md:text-lg text-muted-foreground leading-relaxed">
-                    At Learnova, our mission is to harness the power of{" "}
-                    <span className="text-accent font-semibold">
-                      technology
-                    </span>{" "}
-                    to make education more efficient, engaging, and equitable.
-                    We address the inefficiencies of traditional systems—manual
-                    attendance, siloed data, and limited student interaction—by
-                    delivering{" "}
-                    <span className="text-purple-400 font-semibold">
-                      integrated, intuitive solutions
-                    </span>
-                    .
-                  </p>
-
-                  <p className="md:text-lg text-white leading-relaxed">
-                    With Learnova, teachers can teach without distractions,
-                    students can learn with purpose, and institutions can create
-                    environments where every learner thrives.
-                  </p>
-                </div>
-
-                <ActionButton href="/activity">
-                  Learn More
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                </ActionButton>
-              </Reveal>
-
-              <Reveal className="relative" delay={0.1}>
-                <div className="bg-gradient-to-br from-purple-500/10 via-accent/10 to-pink-500/10 rounded-3xl h-96 flex items-center justify-center border border-purple-500/20 backdrop-blur-sm relative overflow-hidden group hover:scale-[1.02] transition-all duration-700">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-                  <div className="absolute top-4 right-4 w-3 h-3 bg-accent/60 rounded-full animate-pulse" />
-                  <div
-                    className="absolute bottom-6 left-6 w-2 h-2 bg-purple-400/60 rounded-full animate-pulse"
-                    style={{ animationDelay: "1s" }}
-                  />
-
-                  <div className="text-center z-10">
-                    <div className="relative mb-6">
-                      <GraduationCap className="h-24 w-24 text-black dark:text-white mx-auto group-hover:scale-110 transition-transform duration-700" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-accent/20 to-purple-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-700" />
+            {/* Alternating Feature Layout Blocks */}
+            <div className="space-y-32">
+              {/* Block 1: Teachers */}
+              <div className="grid lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+                <Reveal className="lg:col-span-7 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                      <User className="w-5 h-5 text-purple-400" />
                     </div>
-                    <p className="text-xl font-semibold text-black dark:text-white group-hover:text-accent transition-colors duration-500">
-                      Transforming Education
-                    </p>
-                    <p className="text-gray-400 mt-2">
-                      One Institution at a Time
-                    </p>
+                    <span className="text-xs font-bold uppercase tracking-wider text-purple-400">01 / Workspace Focus</span>
                   </div>
-                </div>
-              </Reveal>
+                  <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
+                    For Teachers: Teach Without Distractions
+                  </h3>
+                  <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                    Traditional educational setups trap mentors inside layers of manual administrative tasks and overhead tracking lines. Learnova automates routine administrative operations completely, returning up to 1 hour daily to invest directly back into instructional mentoring.
+                  </p>
+                </Reveal>
+                <Reveal className="lg:col-span-5" delay={0.1}>
+                  <MockupWindow gradientFrom="from-purple-500/20">
+                    <div className="relative flex items-center justify-center">
+                      {/* Decorative ambient background rings inside window */}
+                      <div className="absolute w-32 h-32 rounded-full border border-purple-500/10 animate-ping [animation-duration:4s]" />
+                      <div className="absolute w-24 h-24 rounded-full border border-purple-500/20" />
+                      <User className="w-16 h-16 text-purple-400/50 group-hover:scale-110 group-hover:text-purple-400 transition-all duration-500 relative z-10" />
+                    </div>
+                  </MockupWindow>
+                </Reveal>
+              </div>
+
+              {/* Block 2: Students (Flipped Layout) */}
+              <div className="grid lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+                <Reveal className="lg:col-span-5 lg:order-2 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                      <GraduationCap className="w-5 h-5 text-accent" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-accent">02 / Dynamic Training</span>
+                  </div>
+                  <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
+                    For Students: Learn With Purpose
+                  </h3>
+                  <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                    By structuring access windows and simplifying operational steps, we transform idle overhead slots into engaging learning trajectories. Students benefit from transparent tracking loops and collaborative modules optimized for high engagement rates.
+                  </p>
+                </Reveal>
+                <Reveal className="lg:col-span-7 lg:order-1" delay={0.1}>
+                  <MockupWindow gradientFrom="from-accent/20">
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute w-32 h-32 rounded-full border border-accent/10 animate-ping [animation-duration:4s]" />
+                      <div className="absolute w-24 h-24 rounded-full border border-accent/20" />
+                      <GraduationCap className="w-16 h-16 text-accent/50 group-hover:scale-110 group-hover:text-accent transition-all duration-500 relative z-10" />
+                    </div>
+                  </MockupWindow>
+                </Reveal>
+              </div>
+
+              {/* Block 3: Institutions */}
+              <div className="grid lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+                <Reveal className="lg:col-span-7 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">03 / Centralized System</span>
+                  </div>
+                  <h3 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
+                    For Institutions: Thrive via Connected Insights
+                  </h3>
+                  <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                    Say goodbye to siloed dashboards and broken communication channels. Our system structures an environment where unified indexes deliver deep transparency, protecting data accurately across every department level.
+                  </p>
+                </Reveal>
+                <Reveal className="lg:col-span-5" delay={0.1}>
+                  <MockupWindow gradientFrom="from-emerald-500/20">
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute w-32 h-32 rounded-full border border-emerald-500/10 animate-ping [animation-duration:4s]" />
+                      <div className="absolute w-24 h-24 rounded-full border border-emerald-500/20" />
+                      <Building2 className="w-16 h-16 text-emerald-400/50 group-hover:scale-110 group-hover:text-emerald-400 transition-all duration-500 relative z-10" />
+                    </div>
+                  </MockupWindow>
+                </Reveal>
+              </div>
             </div>
+
+            {/* Premium Multi-Link Ecosystem Action Row */}
+            <Reveal className="mt-24 pt-12 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <p className="text-sm text-muted-foreground max-w-sm text-center sm:text-left">
+                Ready to review our technical system features? Jump directly into the activity center.
+              </p>
+              <ActionButton href="/activity">
+                Explore Platform Features
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              </ActionButton>
+            </Reveal>
           </div>
         </section>
 
@@ -490,7 +543,6 @@ export default function AboutPage() {
                 iconClass="text-accent dark:text-purple-400"
                 textClass="text-accent dark:text-purple-300"
               />
-
 
               <h2 className="text-4xl md:text-5xl font-bold text-black dark:text-white mb-6">
                 Core Principles That Drive Us
@@ -525,6 +577,88 @@ export default function AboutPage() {
                 </Reveal>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Productivity Section */}
+        <section
+          id="productivity"
+          className="py-20 px-4 sm:px-6 lg:px-8 relative"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-purple-500/10 to-pink-500/10 blur-3xl" />
+          <div className="max-w-7xl mx-auto relative">
+            <Reveal className="text-center mb-16">
+              <SectionBadge
+                icon={Sparkles}
+                text="Productivity Studio"
+                gradient="from-blue-500/20 to-purple-500/20"
+                borderClass="border-blue-500/30"
+                textColor="blue-300"
+              />
+              <h2 className="text-4xl md:text-5xl font-bold text-black dark:text-white mb-6">
+                Focus Tools Built for Modern Classrooms
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                Plan the day, stay on schedule, and protect deep work sessions with a
+                productivity hub designed to match Learnova's smart workflow.
+              </p>
+            </Reveal>
+
+            <div className="grid lg:grid-cols-3 gap-8 mb-12">
+              {[
+                {
+                  title: "Pomodoro Flow",
+                  description:
+                    "Guided focus cycles with adaptive breaks, gentle timers, and streak tracking.",
+                  icon: Timer,
+                  gradient: "from-blue-500/20 to-cyan-500/20",
+                },
+                {
+                  title: "Calendar Pulse",
+                  description:
+                    "A clean month view with highlighted priorities and built-in agenda cues.",
+                  icon: CalendarDays,
+                  gradient: "from-purple-500/20 to-pink-500/20",
+                },
+                {
+                  title: "Task Orbit",
+                  description:
+                    "Create, sort, and complete tasks with quick status updates and reminders.",
+                  icon: ListTodo,
+                  gradient: "from-emerald-500/20 to-teal-500/20",
+                },
+              ].map((item, index) => (
+                <Reveal key={item.title} delay={index * 0.08}>
+                  <Card className="group bg-white dark:bg-black/40 border-gray-200 dark:border-white/10 backdrop-blur-xl shadow-sm hover:shadow-xl hover:shadow-accent/10 hover:border-accent/40 transition-all duration-700 hover:scale-[1.02]">
+                    <CardHeader className="text-center pb-4">
+                      <div
+                        className={`mx-auto w-20 h-20 ${item.gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-500`}
+                      >
+                        <item.icon className="h-10 w-10 text-accent" />
+                      </div>
+                      <CardTitle className="text-gray-950 dark:text-white text-xl">
+                        {item.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                        {item.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </Reveal>
+              ))}
+            </div>
+
+            <Reveal className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <ActionButton href="/productivity">
+                Explore Productivity Hub
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+              </ActionButton>
+              <ActionButton href="/contact" variant="secondary">
+                Request a Workflow Demo
+              </ActionButton>
+            </Reveal>
           </div>
         </section>
 
@@ -630,7 +764,7 @@ export default function AboutPage() {
                       <div className="text-4xl md:text-5xl font-bold text-black dark:text-white mb-3 group-hover:text-accent transition-colors duration-500">
                         {stat.number}
                       </div>
-                      <p className="text-black dark:text-white/80 font-medium text-lg group-hover:text-black dark:text-white transition-colors duration-500">
+                      <p className="text-black dark:text-white/80 font-medium text-lg group-hover:text-black dark:group-hover:text-white transition-colors duration-500">
                         {stat.label}
                       </p>
                     </div>
