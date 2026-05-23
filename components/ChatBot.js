@@ -303,7 +303,13 @@ const LearnovaChatbot = () => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // Auto-scroll
+  useEffect(() => {
+    if (!inputMessage && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }, [inputMessage]);
+
+  // Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
