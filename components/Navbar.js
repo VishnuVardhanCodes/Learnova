@@ -56,7 +56,7 @@ export function Navbar() {
 
   // Scroll Effect
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = () => {  
       const progress = Math.min(window.scrollY / 100, 1);
       setScrollProgress(progress);
     };

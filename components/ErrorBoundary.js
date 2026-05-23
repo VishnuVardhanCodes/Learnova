@@ -5,7 +5,12 @@ import { AlertOctagon, RefreshCw, ChevronDown, ChevronUp, Terminal } from "lucid
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null, showDetails: false };
+    this.state = { 
+      hasError: false, 
+      error: null, 
+      errorInfo: null, 
+      showDetails: false 
+    };
   }
 
   static getDerivedStateFromError(error) {
@@ -19,12 +24,22 @@ class ErrorBoundary extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.children !== this.props.children && this.state.hasError) {
-      this.setState({ hasError: false, error: null, errorInfo: null, showDetails: false });
+      this.setState({ 
+        hasError: false, 
+        error: null, 
+        errorInfo: null, 
+        showDetails: false 
+      });
     }
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null, showDetails: false });
+    this.setState({ 
+      hasError: false, 
+      error: null, 
+      errorInfo: null, 
+      showDetails: false 
+    });
   };
 
   render() {
@@ -34,6 +49,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
           <div className="relative w-full max-w-xl bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-purple-500/5 overflow-hidden transition-all duration-300 hover:border-purple-500/20">
+            
             {/* Ambient Background Glows */}
             <div className="absolute -top-24 -left-24 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
