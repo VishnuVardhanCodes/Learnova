@@ -813,7 +813,6 @@ const SmartNoticeBoard = () => {
           </div>
         )}
       </div>
-    </div>
   );
 };
 
