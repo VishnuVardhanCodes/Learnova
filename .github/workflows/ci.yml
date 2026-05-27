@@ -27,7 +27,7 @@ jobs:
       - name: 📚 Install dependencies
         run: |
           rm -rf node_modules package-lock.json
-          npm install
+          npm install --include=optional
 
       - name: 🔨 Build project
         run: npm run build
