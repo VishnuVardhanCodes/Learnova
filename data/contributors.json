@@ -3,7 +3,7 @@
     "username": "Premshaw23",
     "name": "Prem Shaw",
     "admin": true,
-    "contributions": 1045
+    "contributions": 1048
   },
   {
     "username": "Prateek2007-cmd",
@@ -186,7 +186,7 @@
     "contributions": 5
   },
   {
-    "username": "hitdepani",
+    "username": "Vikrant0207",
     "contributions": 5
   },
   {
@@ -194,27 +194,11 @@
     "contributions": 5
   },
   {
-    "username": "Vikrant0207",
+    "username": "hitdepani",
     "contributions": 5
   },
   {
-    "username": "vedant7007",
-    "contributions": 4
-  },
-  {
-    "username": "riddhimagupta2",
-    "contributions": 4
-  },
-  {
-    "username": "Copilot",
-    "contributions": 4
-  },
-  {
-    "username": "priyanshi-coder-2",
-    "contributions": 4
-  },
-  {
-    "username": "khushi897920-lang",
+    "username": "anujsharma8d",
     "contributions": 4
   },
   {
@@ -222,35 +206,27 @@
     "contributions": 4
   },
   {
-    "username": "anujsharma8d",
+    "username": "khushi897920-lang",
     "contributions": 4
   },
   {
-    "username": "surya0904shankar",
-    "contributions": 3
+    "username": "priyanshi-coder-2",
+    "contributions": 4
   },
   {
-    "username": "shauryaparth1902-blip",
-    "contributions": 3
+    "username": "Copilot",
+    "contributions": 4
   },
   {
-    "username": "Rajal-ui",
-    "contributions": 3
+    "username": "riddhimagupta2",
+    "contributions": 4
   },
   {
-    "username": "tanishrajh",
-    "contributions": 3
+    "username": "vedant7007",
+    "contributions": 4
   },
   {
-    "username": "shruti-codes-design",
-    "contributions": 3
-  },
-  {
-    "username": "ash1shkumar",
-    "contributions": 3
-  },
-  {
-    "username": "vaishalig03",
+    "username": "Sweksha-Kakkar",
     "contributions": 3
   },
   {
@@ -258,7 +234,31 @@
     "contributions": 3
   },
   {
-    "username": "Sweksha-Kakkar",
+    "username": "vaishalig03",
+    "contributions": 3
+  },
+  {
+    "username": "ash1shkumar",
+    "contributions": 3
+  },
+  {
+    "username": "shruti-codes-design",
+    "contributions": 3
+  },
+  {
+    "username": "tanishrajh",
+    "contributions": 3
+  },
+  {
+    "username": "Rajal-ui",
+    "contributions": 3
+  },
+  {
+    "username": "shauryaparth1902-blip",
+    "contributions": 3
+  },
+  {
+    "username": "surya0904shankar",
     "contributions": 3
   },
   {
@@ -271,6 +271,10 @@
   },
   {
     "username": "Prashantbhati7",
+    "contributions": 3
+  },
+  {
+    "username": "NiravaM",
     "contributions": 3
   },
   {
@@ -387,10 +391,6 @@
   },
   {
     "username": "Meera2906",
-    "contributions": 2
-  },
-  {
-    "username": "kannatinaveena",
     "contributions": 2
   },
   {
