@@ -40,6 +40,17 @@ export default function Contact() {
   const [cooldownTimer, setCooldownTimer] = useState(0);
 
   useEffect(() => {
+    const savedDraft = localStorage.getItem("learnova_contact_form_draft");
+    if (savedDraft) {
+      try {
+        setFormData(JSON.parse(savedDraft));
+      } catch (error) {
+        console.error("Failed to parse form draft:", error);
+      }
+    }
+} , []);
+
+  useEffect(() => {
     let interval; // Store interval reference securely
     const COOLDOWN_MS = 60 * 1000;
     const lastSubmit = localStorage.getItem('learnova_contact_last_submit');
@@ -71,10 +82,13 @@ export default function Contact() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    const updatedFormData = {
+    ...formData,
+    [name]: value,
+    };
+
+    setFormData(updatedFormData);
+    localStorage.setItem("learnova_contact_form_draft", JSON.stringify(updatedFormData));
 
     setErrors((prev) => ({
       ...prev,
@@ -141,6 +155,7 @@ export default function Contact() {
       
     });
     toast.success("Message sent successfully!");
+    localStorage.removeItem("learnova_contact_form_draft");
 
     setFormData({
       name: "",
