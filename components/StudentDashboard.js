@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -14,8 +16,6 @@ import {
   Target,
   Award,
   RefreshCw,
-  Download,
-  Star,
   Sparkles,
   AlertTriangle,
 } from "lucide-react";
@@ -29,9 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 import AchievementSection from "./AchievementSection";
 import AttendanceChart from "./AttendanceChart";
 
-import {
-  weeklySchedule,
-} from "@/constants/mockData";
+import { weeklySchedule } from "@/constants/mockData";
 import { getUserActivities } from "@/services/activityService";
 import AttendanceAnalytics from "./dashboard/AttendanceAnalytics";
 import StreakCounter from "./gamification/StreakCounter";
@@ -40,302 +38,155 @@ import BadgeGallery from "./gamification/BadgeGallery";
 import ComplaintForm from "@/components/ComplaintForm";
 import StreakTracker from "@/components/ui/StreakTracker";
 
-const AttendanceHeatmap = dynamic(
-  () => import("./AttendanceHeatmap"),
-  {
-    ssr: false,
-    loading: () => <ChartSkeleton variant="heatmap" />,
-  }
-);
+const AttendanceHeatmap = dynamic(() => import("./AttendanceHeatmap"), {
+  ssr: false,
+  loading: () => <ChartSkeleton variant="heatmap" />,
+});
 
-const AttendanceCalendar = dynamic(
-  () => import("./AttendanceCalendar"),
-  {
-    ssr: false,
-    loading: () => <ChartSkeleton variant="heatmap" />,
-  }
-);
+const AttendanceCalendar = dynamic(() => import("./AttendanceCalendar"), {
+  ssr: false,
+  loading: () => <ChartSkeleton variant="heatmap" />,
+});
 
 const StudentDashboard = () => {
   const { user } = useAuth();
-
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [error, setError] = useState(null);
-
   const [todayClasses, setTodayClasses] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [upcomingClass, setUpcomingClass] = useState(null);
-  const [isAttendanceWindow, setIsAttendanceWindow] =
-    useState(false);
-
-  const [gamificationData, setGamificationData] =
-    useState(null);
-
+  const [isAttendanceWindow, setIsAttendanceWindow] = useState(false);
+  const [gamificationData, setGamificationData] = useState(null);
   const [viewMode, setViewMode] = useState("heatmap");
+  const [showComplaint, setShowComplaint] = useState(false);
 
-  const [showComplaint, setShowComplaint] =
-    useState(false);
-
-    useEffect(() => {
+  useEffect(() => {
     const fetchActivity = async () => {
       try {
         if (!user?.uid) return;
         const activities = await getUserActivities(user.uid);
-        const mapped = activities.map(a => ({
-         subject: a.title,
+        const mapped = activities.map((a) => ({
+          subject: a.title,
           date: a.timestamp?.toLocaleDateString() || "",
           status: a.progress >= 100 ? "present" : "late",
-          }));
-setRecentActivity(mapped);
+        }));
+        setRecentActivity(mapped);
       } catch (err) {
         console.error("Failed to load activity", err);
       }
     };
-
     fetchActivity();
   }, [user]);
 
   useEffect(() => {
     const controller = new AbortController();
-
     const fetchGamification = async () => {
       try {
         if (!user) return;
-
         const token = await user.getIdToken();
-
-        const res = await fetch(
-          "/api/student/gamification",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            signal: controller.signal,
-          }
-        );
-
+        const res = await fetch("/api/student/gamification", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
         if (res.ok) {
           const data = await res.json();
           setGamificationData(data);
         }
       } catch (err) {
         if (err.name === "AbortError") return;
-        console.error(
-          "Failed to load gamification data",
-          err
-        );
+        console.error("Failed to load gamification data", err);
       }
     };
-
     fetchGamification();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [user]);
 
-  // Attendance stats
   const attendanceStats = useMemo(() => {
     const counts = recentActivity.reduce(
       (acc, curr) => {
         const status = curr?.status?.toLowerCase();
-
         if (status === "present") acc.present++;
         else if (status === "absent") acc.absent++;
         else if (status === "late") acc.late++;
-
         return acc;
       },
-      {
-        present: 0,
-        absent: 0,
-        late: 0,
-      }
+      { present: 0, absent: 0, late: 0 }
     );
-
-    const total =
-      counts.present +
-      counts.absent +
-      counts.late;
-
-    const percentage =
-      total > 0
-        ? Math.round(
-            ((counts.present + counts.late) /
-              total) *
-              100
-          )
-        : 0;
-
-    return {
-      ...counts,
-      total,
-      percentage,
-    };
+    const total = counts.present + counts.absent + counts.late;
+    const percentage = total > 0 ? Math.round(((counts.present + counts.late) / total) * 100) : 0;
+    return { ...counts, total, percentage };
   }, [recentActivity]);
 
-  // Achievement data
   const attendancePerformance = useMemo(() => {
     return {
-      attendancePercentage:
-        attendanceStats?.percentage ?? 0,
-
-      streakDays:
-        gamificationData?.currentStreak ?? 8,
+      attendancePercentage: attendanceStats?.percentage ?? 0,
+      streakDays: gamificationData?.currentStreak ?? 8,
     };
   }, [attendanceStats, gamificationData]);
 
   useEffect(() => {
-    const loadingTimer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
+    const loadingTimer = setTimeout(() => setLoading(false), 1500);
     const updateDashboard = async () => {
       try {
         const now = new Date();
-
         setCurrentTime(now);
-
         const hour = now.getHours();
         const minute = now.getMinutes();
         const day = now.getDay();
-
         const isWeekday = day >= 1 && day <= 5;
+        const isAttendanceTime = hour === 9 && minute <= 10;
+        const newIsAttendance = isWeekday && isAttendanceTime;
+        setIsAttendanceWindow((prev) => (prev !== newIsAttendance ? newIsAttendance : prev));
 
-        const isAttendanceTime =
-          hour === 9 && minute <= 10;
-
-        const newIsAttendance =
-          isWeekday && isAttendanceTime;
-
-        setIsAttendanceWindow((prev) =>
-          prev !== newIsAttendance
-            ? newIsAttendance
-            : prev
-        );
-
-        const dayNames = [
-          "Sunday",
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-        ];
-
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const today = dayNames[day];
-
-        const classes =
-          weeklySchedule[today] || [];
-
+        const classes = weeklySchedule[today] || [];
         setTodayClasses(classes);
 
         const upcoming = classes.find((cls) => {
-          const [startTime] =
-            cls.time.split("-");
-
-          const [classHour, classMinute] =
-            startTime
-              .split(":")
-              .map(Number);
-
-          return (
-            hour < classHour ||
-            (hour === classHour &&
-              minute < classMinute)
-          );
+          const [startTime] = cls.time.split("-");
+          const [classHour, classMinute] = startTime.split(":").map(Number);
+          return hour < classHour || (hour === classHour && minute < classMinute);
         });
-
         setUpcomingClass(upcoming || null);
-
         setError(null);
       } catch (err) {
-        setError(
-          "Failed to load dashboard data. Please try again."
-        );
-
-        console.error(
-          "Error updating dashboard:",
-          err
-        );
+        setError("Failed to load dashboard data. Please try again.");
       }
     };
-
     updateDashboard();
-
-    const timer = setInterval(
-      updateDashboard,
-      1000
-    );
-
+    const timer = setInterval(updateDashboard, 1000);
     return () => {
       clearInterval(timer);
       clearTimeout(loadingTimer);
     };
   }, []);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "present":
-        return "text-green-400 bg-green-500/10 border-green-500/30";
-
-      case "absent":
-        return "text-red-400 bg-red-500/10 border-red-500/30";
-
-      case "late":
-        return "text-yellow-400 bg-yellow-500/10 border-yellow-500/30";
-
-      default:
-        return "text-gray-400 bg-gray-500/10 border-gray-500/30";
-    }
-  };
-
   const getUserInitials = () => {
-    if (!user?.displayName && !user?.email) {
-      return "U";
-    }
-
+    if (!user?.displayName && !user?.email) return "U";
     return (
-      user?.displayName
-        ?.split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase() ||
-      user?.email?.[0]?.toUpperCase() ||
-      "U"
+      user?.displayName?.split(" ").map((n) => n[0]).join("").toUpperCase() ||
+      user?.email?.[0]?.toUpperCase() || "U"
     );
   };
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
+  if (loading) return <DashboardSkeleton />;
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden flex items-center justify-center">
-        <div className="relative z-10 text-center text-white px-4">
-          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="w-10 h-10 text-red-400" />
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center p-4">
+        <div className="text-center text-white max-w-sm">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-400" />
           </div>
-
-          <h2 className="text-2xl font-bold mb-2">
-            Error Loading Dashboard
-          </h2>
-
-          <p className="text-gray-400 mb-6">
-            {error}
-          </p>
-
+          <h2 className="text-xl font-bold mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-400 text-sm mb-6">{error}</p>
           <button
-            onClick={() =>
-              window.location.reload()
-            }
-            className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg"
+            onClick={() => window.location.reload()}
+            className="w-full bg-gradient-to-r from-green-500 to-blue-500 py-3 rounded-xl font-bold"
           >
-            <RefreshCw className="w-5 h-5 mr-2 inline" />
-            Retry
+            <RefreshCw className="w-4 h-4 mr-2 inline" /> Retry
           </button>
         </div>
       </div>
@@ -343,49 +194,46 @@ setRecentActivity(mapped);
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black relative overflow-x-hidden">
       <Navbar />
 
-      <div className="relative z-10 max-w-7xl mx-auto pt-20 pb-12 px-6 space-y-6">
-
-        {/* ── Header: profile + live clock ── */}
-        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-2xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Main Container - Optimized px-4 for mobile */}
+      <div className="relative z-10 max-w-7xl mx-auto pt-20 pb-12 px-4 sm:px-6 space-y-6">
+        
+        {/* Header - Optimized Flex and Spacing */}
+        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 sm:p-6 shadow-2xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 {user?.photoURL ? (
                   <Image
                     src={user.photoURL}
-                    alt={`${user?.displayName || user?.email?.split("@")[0] || "Student"} profile photo`}
+                    alt="Profile"
                     width={48}
                     height={48}
                     className="w-12 h-12 rounded-xl border border-accent/30 object-cover"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-blue-500 flex items-center justify-center border border-accent/30">
-                    <span className="text-sm font-bold text-white">
-                      {getUserInitials()}
-                    </span>
+                    <span className="text-sm font-bold text-white">{getUserInitials()}</span>
                   </div>
                 )}
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-black" />
               </div>
 
-              <div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-accent bg-clip-text text-transparent">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-2xl font-bold text-white truncate max-w-[150px] sm:max-w-none">
                     {user?.displayName || user?.email?.split("@")[0] || "Student"}
                   </h1>
                   <StreakTracker />
                 </div>
-                <div className="text-sm text-gray-400">
-                  {user?.email || "No email"}
-                </div>
+                <div className="text-xs sm:text-sm text-gray-400 truncate">{user?.email || "No email"}</div>
               </div>
             </div>
 
-            <div className="text-right">
-              <div className="text-xl font-mono text-white">
+            <div className="text-left md:text-right border-t md:border-t-0 pt-4 md:pt-0 border-white/5">
+              <div className="text-lg sm:text-xl font-mono text-white">
                 {currentTime?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
               <div className="text-xs text-gray-400">
@@ -395,73 +243,50 @@ setRecentActivity(mapped);
           </div>
         </div>
 
-        {/* ── Gamification row: Streak · XP · Badges ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Gamification Grid - Optimized Gap */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 shadow-xl">
             <StreakCounter streak={gamificationData?.currentStreak ?? 0} />
           </div>
           <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 shadow-xl">
-            <XpProgressBar
-              xp={gamificationData?.xp ?? 0}
-              level={gamificationData?.level ?? 1}
-            />
+            <XpProgressBar xp={gamificationData?.xp ?? 0} level={gamificationData?.level ?? 1} />
           </div>
           <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 shadow-xl">
             <BadgeGallery badges={gamificationData?.badges ?? []} />
           </div>
         </div>
 
-        {/* ── Attendance window banner ── */}
+        {/* Attendance Banner */}
         {isAttendanceWindow && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 flex items-center gap-3">
-            <Camera className="w-5 h-5 text-green-400 flex-shrink-0" />
-            <p className="text-green-300 text-sm font-medium">
-              Attendance window is open right now. Head to the{" "}
-              <span className="font-bold">Attendance</span> tab to check in.
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 flex items-start sm:items-center gap-3">
+            <Camera className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5 sm:mt-0" />
+            <p className="text-green-300 text-xs sm:text-sm font-medium">
+              Attendance window is open. Head to the <span className="font-bold">Attendance</span> tab to check in.
             </p>
           </div>
         )}
 
-        {/* ── Main content: schedule (left) + attendance (right) ── */}
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Today's Schedule */}
-          <div className="lg:col-span-1 bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
+          {/* Schedule - Optimized padding and truncation */}
+          <div className="lg:col-span-1 bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 sm:p-6 shadow-xl">
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="w-5 h-5 text-accent" />
-              <h2 className="text-lg font-bold text-white">Today&apos;s Schedule</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white">Today&apos;s Schedule</h2>
             </div>
-
             {todayClasses.length === 0 ? (
               <p className="text-gray-500 text-sm">No classes scheduled today.</p>
             ) : (
               <div className="space-y-3">
                 {todayClasses.map((cls, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-start gap-3 p-3 rounded-xl border ${
-                      upcomingClass === cls
-                        ? "border-accent/50 bg-accent/10"
-                        : "border-white/5 bg-white/5"
-                    }`}
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      <Clock className="w-4 h-4 text-accent" />
-                    </div>
-                    <div className="min-w-0">
+                  <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${upcomingClass === cls ? "border-accent/50 bg-accent/10" : "border-white/5 bg-white/5"}`}>
+                    <div className="flex-shrink-0 mt-0.5"><Clock className="w-4 h-4 text-accent" /></div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-white text-sm font-semibold truncate">{cls.subject}</p>
-                      <p className="text-gray-400 text-xs">{cls.time}</p>
-                      {cls.room && (
-                        <p className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3" />
-                          {cls.room}
-                        </p>
-                      )}
+                      <p className="text-gray-400 text-[10px] sm:text-xs">{cls.time}</p>
                     </div>
                     {upcomingClass === cls && (
-                      <span className="ml-auto flex-shrink-0 text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 border border-accent/30 px-2 py-0.5 rounded-full">
-                        Next
-                      </span>
+                      <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-wider text-accent bg-accent/10 border border-accent/30 px-2 py-0.5 rounded-full">Next</span>
                     )}
                   </div>
                 ))}
@@ -469,170 +294,104 @@ setRecentActivity(mapped);
             )}
           </div>
 
-          {/* Attendance performance stats */}
+          {/* Performance Stats - Optimized Grid and StatCard padding */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
+            <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 sm:p-6 shadow-xl">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-accent" />
-                <h2 className="text-lg font-bold text-white">Attendance Performance</h2>
+                <h2 className="text-base sm:text-lg font-bold text-white">Performance</h2>
               </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
                 <StatCard color="green" label="Present" value={attendanceStats.present} />
-                <StatCard color="red"   label="Absent"  value={attendanceStats.absent} />
-                <StatCard color="yellow" label="Late"   value={attendanceStats.late} />
-                <StatCard color="blue"  label="Rate"    value={`${attendanceStats.percentage}%`} />
+                <StatCard color="red" label="Absent" value={attendanceStats.absent} />
+                <StatCard color="yellow" label="Late" value={attendanceStats.late} />
+                <StatCard color="blue" label="Rate" value={`${attendanceStats.percentage}%`} />
               </div>
-
-              <AttendanceChart data={recentActivity} />
+              <div className="w-full overflow-x-hidden">
+                <AttendanceChart data={recentActivity} />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── Attendance heatmap / calendar toggle ── */}
-        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
+        {/* History Section - Optimized Overflow */}
+        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 sm:p-6 shadow-xl overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-accent" />
-              <h2 className="text-lg font-bold text-white">Attendance History</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white">Attendance History</h2>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode("heatmap")}
-                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
-                  viewMode === "heatmap"
-                    ? "bg-accent/20 border-accent/50 text-accent"
-                    : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
-                }`}
-              >
-                Heatmap
-              </button>
-              <button
-                onClick={() => setViewMode("calendar")}
-                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
-                  viewMode === "calendar"
-                    ? "bg-accent/20 border-accent/50 text-accent"
-                    : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
-                }`}
-              >
-                Calendar
-              </button>
+            <div className="flex gap-2 bg-white/5 p-1 rounded-xl border border-white/10 self-start sm:self-auto">
+              {["heatmap", "calendar"].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`text-[10px] sm:text-xs px-3 py-1.5 rounded-lg font-medium transition-all ${
+                    viewMode === mode ? "bg-accent text-white shadow-lg" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
-
-          {viewMode === "heatmap" ? <AttendanceHeatmap /> : <AttendanceCalendar />}
+          <div className="overflow-x-auto pb-2 scrollbar-hide">
+             {viewMode === "heatmap" ? <AttendanceHeatmap /> : <AttendanceCalendar />}
+          </div>
         </div>
 
-        {/* ── Attendance Analytics ── */}
-        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
+        {/* Analytics & Achievements - Consistent padding */}
+        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 sm:p-6 shadow-xl">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-accent" />
-            <h2 className="text-lg font-bold text-white">Analytics</h2>
+            <h2 className="text-base sm:text-lg font-bold text-white">Analytics</h2>
           </div>
           <AttendanceAnalytics />
         </div>
 
-        {/* ── Achievements ── */}
-        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
+        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 sm:p-6 shadow-xl">
           <div className="flex items-center gap-2 mb-4">
             <Award className="w-5 h-5 text-accent" />
-            <h2 className="text-lg font-bold text-white">Achievements</h2>
+            <h2 className="text-base sm:text-lg font-bold text-white">Achievements</h2>
           </div>
           <AchievementSection performance={attendancePerformance} />
         </div>
 
-        {/* ── Raise a complaint ── */}
-        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
+        {/* Support Section - Mobile Friendly Button */}
+        <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 p-4 sm:p-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-accent" />
-              <h2 className="text-lg font-bold text-white">Support</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white">Support</h2>
             </div>
             <button
               onClick={() => setShowComplaint((v) => !v)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-accent/40 bg-accent/10 text-accent hover:bg-accent/20 font-medium transition-colors"
+              className="w-full sm:w-auto text-xs px-4 py-2 rounded-lg border border-accent/40 bg-accent/10 text-accent font-medium hover:bg-accent/20 transition-all"
             >
               {showComplaint ? "Hide Form" : "Raise a Complaint"}
             </button>
           </div>
-
-          {showComplaint && <ComplaintForm />}
+          {showComplaint && <div className="mt-4"><ComplaintForm /></div>}
         </div>
-
       </div>
     </div>
   );
 };
 
-const StatCard = ({
-  color,
-  label,
-  value,
-}) => {
+// StatCard - Optimized for smaller grids
+const StatCard = ({ color, label, value }) => {
   const styles = {
-    green:
-      "from-green-500/20 to-green-600/20 border-green-500/30 text-green-400",
-
-    red:
-      "from-red-500/20 to-red-600/20 border-red-500/30 text-red-400",
-
-    yellow:
-      "from-yellow-500/20 to-yellow-600/20 border-yellow-500/30 text-yellow-400",
-
-    blue:
-      "from-blue-500/20 to-blue-600/20 border-blue-500/30 text-blue-400",
+    green: "from-green-500/20 to-green-600/20 border-green-500/30 text-green-400",
+    red: "from-red-500/20 to-red-600/20 border-red-500/30 text-red-400",
+    yellow: "from-yellow-500/20 to-yellow-600/20 border-yellow-500/30 text-yellow-400",
+    blue: "from-blue-500/20 to-blue-600/20 border-blue-500/30 text-blue-400",
   };
-
   return (
-    <div
-      className={`bg-gradient-to-r ${styles[color]} border rounded-xl p-4`}
-    >
-      <div className="text-sm">{label}</div>
-
-      <div className="text-xl font-bold">
-        {value}
-      </div>
+    <div className={`bg-gradient-to-r ${styles[color]} border rounded-xl p-3 sm:p-4`}>
+      <div className="text-[10px] sm:text-sm opacity-80">{label}</div>
+      <div className="text-base sm:text-xl font-bold">{value}</div>
     </div>
   );
 };
-
-const QuickStat = ({
-  icon,
-  label,
-  value,
-}) => (
-  <div className="flex items-center justify-between">
-    <div className="flex items-center space-x-2">
-      {icon}
-
-      <span className="text-gray-300 text-sm">
-        {label}
-      </span>
-    </div>
-
-    <span className="text-white font-semibold">
-      {value}
-    </span>
-  </div>
-);
-
-const SecurityItem = ({
-  label,
-  status,
-}) => (
-  <div className="flex items-center justify-between">
-    <div className="flex items-center space-x-2">
-      <CheckCircle className="w-4 h-4 text-green-400" />
-
-      <span className="text-gray-300 text-sm">
-        {label}
-      </span>
-    </div>
-
-    <span className="text-green-400 text-sm">
-      {status}
-    </span>
-  </div>
-);
 
 export default StudentDashboard;
