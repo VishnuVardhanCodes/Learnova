@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageSquare, Send } from "lucide-react";
+import { MessageSquare, Send, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getCommentStorageKey,
@@ -38,18 +38,32 @@ const CommentSection = ({ noticeId }) => {
   const storageKey = getCommentStorageKey(noticeId);
 
   // 2. Load existing fake comments or persistent local storage comments
+  const storageKey = `comments_${noticeId || "global"}`;
+
   useEffect(() => {
-    const savedComments = normalizeStoredComments(
-      safeLocalStorageGet(storageKey, []),
-    );
+    const savedComments = localStorage.getItem(storageKey);
 
-    if (savedComments.length > 0) {
-      setComments(savedComments);
-      return;
+    if (savedComments) {
+      setComments(JSON.parse(savedComments));
+    } else {
+      const defaultComments = [
+        {
+          id: "seed_1",
+          userName: "Ananya Rao",
+          userRole: "Teacher",
+          text: "Please make sure to review this notice before Monday's class.",
+        },
+        {
+          id: "seed_2",
+          userName: "Rahul Sharma",
+          userRole: "Student",
+          text: "Got it! Thanks for the update.",
+        },
+      ];
+
+      setComments(defaultComments);
+      localStorage.setItem(storageKey, JSON.stringify(defaultComments));
     }
-
-    setComments(defaultComments);
-    safeLocalStorageSet(storageKey, defaultComments);
   }, [storageKey]);
 
   // 3. Handle comment submission without needing a live backend database connection
@@ -68,8 +82,21 @@ const CommentSection = ({ noticeId }) => {
     setComments(updatedComments);
 
     // Save to browser memory so it stays there when you refresh the page
-    safeLocalStorageSet(storageKey, updatedComments);
+    localStorage.setItem(`comments_${noticeId || "global"}`, JSON.stringify(updatedComments));
     setNewComment("");
+  };
+
+  const handleDeleteComment = (commentId) => {
+    const updatedComments = comments.filter(
+      (comment) => comment.id !== commentId
+    );
+
+    setComments(updatedComments);
+
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify(updatedComments)
+    );
   };
 
   return (
@@ -90,11 +117,24 @@ const CommentSection = ({ noticeId }) => {
               exit={{ opacity: 0, x: 10 }}
               className="rounded-2xl border border-slate-300 dark:border-slate-800/40 bg-slate-100 dark:bg-slate-950/40 p-3"
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{comment.userName}</span>
-                <span className="rounded-md bg-slate-300 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-300">
-                  {comment.userRole}
-                </span>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    {comment.userName}
+                  </span>
+
+                  <span className="rounded-md bg-slate-300 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-300">
+                    {comment.userRole}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => handleDeleteComment(comment.id)}
+                  className="text-slate-400 hover:text-red-500 transition-colors"
+                  title="Delete comment"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400 break-words">{comment.text}</p>
             </motion.div>
