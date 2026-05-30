@@ -145,6 +145,8 @@ export default function AuthForm({
                 onChange={handleFieldChange("fullName", setFullName)}
                 onBlur={handleFieldBlur("fullName")}
                 error={errors.fullName}
+                aria-invalid={errors.fullName ? "true" : "false"}
+                aria-describedby={errors.fullName ? "name-error" : undefined}
                 placeholder="Enter your full name"
               />
 
@@ -156,6 +158,8 @@ export default function AuthForm({
                   onChange={handleFieldChange("instituteName", setInstituteName)}
                   onBlur={handleFieldBlur("instituteName")}
                   error={errors.instituteName}
+                  aria-invalid={errors.instituteName ? "true" : "false"}
+                  aria-describedby={errors.instituteName ? "institute-error" : undefined}
                   placeholder="Enter your institute name"
                 />
               ) : null}
@@ -171,6 +175,8 @@ export default function AuthForm({
             onChange={handleFieldChange("email", setEmail)}
             onBlur={handleFieldBlur("email")}
             error={errors.email}
+            aria-invalid={errors.email ? "true" : "false"}
+            aria-describedby={errors.email ? "email-error" : undefined}
             placeholder="Enter your email"
             icon={Mail}
           />
