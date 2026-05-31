@@ -46,7 +46,7 @@ export default function ShareButton({ className = "" }) {
     } catch (error) {
       // Don't error out if the user simply cancels/closes the native share sheet
       if (error.name === "AbortError") {
-        console.log("Share menu dismissed by user.");
+       
         return;
       }
       console.error("Sharing failed:", error);

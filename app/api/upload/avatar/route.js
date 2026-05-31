@@ -12,10 +12,10 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export const POST = async (request) => {
   try {
-    console.log("Avatar upload endpoint called");
+    
     
     const decodedToken = await requireAuth(request);
-    console.log("User authenticated:", decodedToken.uid);
+    
     
     const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
     
@@ -29,7 +29,7 @@ export const POST = async (request) => {
       );
     }
 
-    console.log("Extracting form data...");
+   
     const formData = await request.formData();
     const file = extractImageFileFromFormData(formData);
 
@@ -40,7 +40,7 @@ export const POST = async (request) => {
       );
     }
 
-    console.log("File received:", file.name, file.size, file.type);
+    
 
     if (file.size <= 0) {
       return NextResponse.json(
@@ -57,7 +57,7 @@ export const POST = async (request) => {
     }
 
     // Upload to Vercel Blob instead of storing base64 in MongoDB
-    console.log("Uploading to blob storage...");
+    
     const { blobUrl } = await uploadAvatarToBlob({
       file,
       uid: decodedToken.uid,
@@ -89,7 +89,7 @@ export const POST = async (request) => {
       throw error;
     }
 
-    console.log("Avatar saved successfully to blob storage");
+  
     
     return NextResponse.json(
       { 
