@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import { useEffect } from "react";
 import { useState } from "react";
 import {
@@ -192,10 +193,12 @@ const SuperAdminDashboard = () => {
           if (data.featureUsage) setFeatureUsage(data.featureUsage);
         } else {
           console.error("Failed to fetch admin stats:", res.status);
+          toast.error("Failed to load platform stats. Please refresh.");
         }
       } catch (err) {
         if (err.name === "AbortError") return;
         console.error("Error fetching admin stats:", err);
+        toast.error("Network error loading admin stats.");
       } finally {
         if (isActive) {
           setLoading(false);
