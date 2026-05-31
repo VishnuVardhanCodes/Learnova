@@ -105,6 +105,34 @@ describe("CourseLibrary saved-course shortlist", () => {
     ).toBeInTheDocument();
   });
 
+  test("keeps UI state unchanged when saved-course persistence fails", async () => {
+    const user = userEvent.setup();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    window.localStorage.setItem.mockImplementationOnce(() => {
+      throw new Error("Storage unavailable");
+    });
+
+    renderCourseLibrary();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /save advanced next\.js.*react architecture to saved courses/i,
+      })
+    );
+
+    expect(window.localStorage.getItem(SAVED_COURSES_STORAGE_KEY)).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith(
+      "Could not update saved courses on this device."
+    );
+    expect(
+      screen.getByRole("button", {
+        name: /save advanced next\.js.*react architecture to saved courses/i,
+      })
+    ).toBeInTheDocument();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
   test("shows saved courses that are outside the first paginated page", async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(

@@ -19,7 +19,6 @@ import Badge from "@/components/ui/Badge";
 import { apiFetch } from "@/lib/apiClient";
 import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/storage";
 import {
-  COURSES,
   SAVED_COURSES_STORAGE_KEY,
   getSavedCourses,
   sanitizeSavedCourseIds,
@@ -45,7 +44,7 @@ export default function CourseLibrary({
   q,
   total,
   limit = 6,
-  allCourses = COURSES,
+  allCourses = [],
 }) {
   const [courses, setCourses] = useState(initialCourses);
   const [page, setPage] = useState(1);
@@ -100,15 +99,18 @@ export default function CourseLibrary({
         ? existingIds.filter((id) => id !== course.id)
         : [...existingIds, course.id];
 
-      if (safeLocalStorageSet(SAVED_COURSES_STORAGE_KEY, nextIds)) {
-        toast.success(
-          isAlreadySaved
-            ? "Course removed from saved list"
-            : "Course saved for later"
-        );
-      } else {
+      const didPersist = safeLocalStorageSet(SAVED_COURSES_STORAGE_KEY, nextIds);
+
+      if (!didPersist) {
         toast.error("Could not update saved courses on this device.");
+        return existingIds;
       }
+
+      toast.success(
+        isAlreadySaved
+          ? "Course removed from saved list"
+          : "Course saved for later"
+      );
 
       return nextIds;
     });
