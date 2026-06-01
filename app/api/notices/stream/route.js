@@ -86,7 +86,7 @@ export async function GET(request) {
     const profile = await getUserProfile(decodedToken.uid);
     const userRole = profile?.role || "student";
     const userId = decodedToken.uid;
-    const instituteId = profile?.instituteId || null;
+    const instituteId = profile?.instituteId || profile?.uid;
 
     const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
     const rateLimitResult = await checkRateLimit(`notices_stream_${ip}_${userId}`);
