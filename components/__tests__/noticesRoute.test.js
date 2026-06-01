@@ -193,7 +193,7 @@ describe("Notice Board Isolation & Security Tests", () => {
     test("rejects standard students from creating notices", async () => {
       verifyFirebaseToken.mockResolvedValue({
         valid: true,
-        decodedToken: { uid: "student-123", email: "student@domain.com" },
+        decodedToken: { uid: "student-123", email: "student@domain.com", email_verified: true, role: "student" },
       });
       getUserProfile.mockResolvedValue({
         role: "student",
@@ -214,6 +214,7 @@ describe("Notice Board Isolation & Security Tests", () => {
 
       expect(response.status).toBe(403);
       expect(body.error).toContain("Forbidden");
+      expect(body.error).toContain("Requires one of");
       expect(mockFirestoreAdd).not.toHaveBeenCalled();
     });
   });
@@ -222,10 +223,7 @@ describe("Notice Board Isolation & Security Tests", () => {
     test("filters initial MongoDB query by user instituteId", async () => {
       verifyFirebaseToken.mockResolvedValue({
         valid: true,
-        decodedToken: {
-          uid: "student-123",
-          email: "student@domain.com",
-        },
+        decodedToken: { uid: "student-123", email: "student@domain.com", email_verified: true },
       });
       getUserProfile.mockResolvedValue({
         role: "student",
@@ -291,6 +289,7 @@ describe("Notice Board Isolation & Security Tests", () => {
       verifyFirebaseToken.mockResolvedValue({
         valid: true,
         decodedToken: { uid: "publisher-123", email: "teacher@domain.com", name: "Teacher Jane", email_verified: true, role: "teacher" },
+        decodedToken: { uid: "student-123", email: "student@domain.com", email_verified: true },
       });
       getUserProfile.mockResolvedValue({
         role: "teacher",
