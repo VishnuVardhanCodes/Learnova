@@ -25,6 +25,7 @@ import { Navbar } from "./Navbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useCurriculum } from "@/hooks/useCurriculum";
+import { useIsMounted } from "@/hooks/useIsMounted";
 
 const AchievementSection = dynamic(
   () => import("./AchievementSection"),
@@ -223,6 +224,7 @@ const StudentDashboard = () => {
 
   const { recentActivity, gamificationData } = useAttendance({ role: "student", user });
   const { curriculum } = useCurriculum({ role: "student", user });
+  const isMounted = useIsMounted();
 
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -294,10 +296,11 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     const loadingTimer = setTimeout(() => {
-      setLoading(false);
+      if (isMounted()) setLoading(false);
     }, 1500);
 
     const updateDashboard = () => {
+      if (!isMounted()) return;
       const now = new Date();
 
       setCurrentTime(now);
