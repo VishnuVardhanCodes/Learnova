@@ -1,7 +1,14 @@
 /** @type {import('next').NextConfig} */
 import createNextIntlPlugin from 'next-intl/plugin';
 import withPWAInit from '@ducanh2912/next-pwa';
-import webpack from 'webpack';
+
+// Polyfill globalThis.crypto for Node 18 (used by jose in middleware Edge compilation)
+try {
+  const { webcrypto } = await import('node:crypto');
+  if (webcrypto && !globalThis.crypto) {
+    globalThis.crypto = webcrypto;
+  }
+} catch {}
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.js');
 
@@ -109,11 +116,6 @@ const nextConfig = {
       fs: false,
       encoding: false,
     };
-    config.plugins.push(
-      new webpack.ProvidePlugin({
-        crypto: ['crypto', 'webcrypto'],
-      }),
-    );
     return config;
   },
   eslint: {
