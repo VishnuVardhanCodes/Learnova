@@ -13,11 +13,8 @@ export const POST = async (request) => {
   try {
     const decodedToken = await requireAuth(request);
 
-    const ip =
-      request.headers.get("x-forwarded-for") || "127.0.0.1";
-
     const rateLimitResult = await checkRateLimit(
-      `avatar_upload_${ip}_${decodedToken.uid}`
+      `avatar_upload_${decodedToken.uid}`
     );
 
     if (!rateLimitResult.allowed) {
