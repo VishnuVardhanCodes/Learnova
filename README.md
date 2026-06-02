@@ -31,7 +31,7 @@ Learnova is a modern, AI-powered educational platform built to eliminate the ine
 ## ✨ Features
 
 ### 🔐 Role-Based Authentication
-- Separate dashboards for **Students**, **Teachers**, **Institutes**, and **Admins**
+- Separate dashboards for **Students**, **Teachers**, **Institutes**, **Parents**, and **Admins**
 - Firebase-powered sign-up/login with email verification and password reset
 - Secure protected routes with role-based redirects
 
@@ -44,6 +44,7 @@ Learnova is a modern, AI-powered educational platform built to eliminate the ine
 - **Student Dashboard** — view attendance records and academic progress
 - **Teacher Dashboard** — manage classes, take attendance, monitor students
 - **Institute Dashboard** — oversee departments and institution-wide metrics
+- **Parent Dashboard** — monitor linked children's daily/weekly/monthly attendance trends, grades breakdown, low attendance alerts, and announcements
 - **Admin Dashboard** — full system administration and user management
 
 ### 📋 Notice Board
@@ -69,6 +70,40 @@ Learnova is a modern, AI-powered educational platform built to eliminate the ine
 ### ⚙️ Profile & Settings
 - Universal profile management for all roles
 - Customisable settings per user type
+
+---
+
+## 👨‍👩‍👧 Parent Portal Feature
+
+Learnova features a comprehensive Parent Portal that allows parents to securely monitor their children's academic status, notifications, and attendance.
+
+### Key Capabilities
+1. **Parent-Student Linking**: Admins can securely link one or multiple student accounts to a single Parent account via the Admin Dashboard.
+2. **Attendance Tracking**: Dynamic attendance analytics displaying daily, weekly, and monthly trends using high-fidelity Recharts visualisations.
+3. **Academic Performance**: Subject-wise grade breakdown, scores, and GPAs with automatic grade notifications.
+4. **Self-Healing Low Attendance Alerts**: Automated background check triggers when student attendance drops below 75%, generating notifications for parents.
+5. **Notice Board Integration**: Parents can view notices and announcements posted by the student's institute.
+
+### Data Schemas
+
+#### `parent_student_links` (Firestore & MongoDB)
+Maps the relationship between a parent and their linked child/children:
+- `_id / documentId`: `${parentId}_${studentId}`
+- `parentId`: Firebase UID of the parent user
+- `studentId`: Firebase UID of the student user
+- `createdAt`: ISO Timestamp
+
+#### `grades` (Firestore & MongoDB)
+Stores subject-wise student grades:
+- `_id / documentId`: Unique ID
+- `studentId`: Firebase UID of the student user
+- `subject`: Name of the subject (e.g. "Computer Science")
+- `grade`: Letter grade (e.g. "A+")
+- `score`: Numeric score (e.g. 98)
+- `maxScore`: Maximum possible score (e.g. 100)
+- `term`: Academic term (e.g. "Midterm")
+- `date`: Grading date (e.g. "2026-06-01")
+- `createdAt`: ISO Timestamp
 
 ---
 
@@ -105,6 +140,7 @@ learnova/
 │   ├── student/dashboard/        # Student dashboard
 │   ├── teacher/dashboard/        # Teacher dashboard
 │   ├── institute/dashboard/      # Institute dashboard
+│   ├── parent/dashboard/         # Parent dashboard
 │   ├── admin/dashboard/          # Admin dashboard
 │   ├── attendance/               # Attendance management
 │   ├── activity/                 # Activity centre
@@ -120,6 +156,7 @@ learnova/
 │   ├── StudentDashboard.js       # Student dashboard component
 │   ├── TeacherDashboardComponent.js # Teacher dashboard component
 │   ├── InstituteDashboard.js     # Institute dashboard
+│   ├── ParentDashboard.js        # Parent dashboard component
 │   ├── AdminDashboard.js         # Admin dashboard
 │   ├── ChatBot.js                # AI chatbot
 │   ├── noticeBoard.js            # Notice board component
