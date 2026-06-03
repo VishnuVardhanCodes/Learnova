@@ -170,7 +170,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
                   const globalIdx = flat.indexOf(cmd);
                   const isActive = globalIdx === activeIndex;
                   return (
-                    <div
+                    <button
                       key={cmd.id}
                       id={`cmd-${cmd.id}`}
                       role="option"
@@ -178,7 +178,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
                       data-active={isActive}
                       onClick={() => handleSelect(cmd)}
                       onMouseEnter={() => setActiveIndex(globalIdx)}
-                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                      className={`flex w-full items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
                         isActive
                           ? 'bg-indigo-50 dark:bg-indigo-900/40'
                           : 'hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -195,7 +195,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
                       {isActive && (
                         <kbd className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-1.5 py-0.5 rounded">↵</kbd>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
