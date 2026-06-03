@@ -86,6 +86,7 @@ export default function RoleSelection({ onRoleSelect }) {
 
               {/* CTA pill — appears on hover */}
               <div
+                aria-hidden="true"
                 className={`mt-5 w-full rounded-xl bg-gradient-to-r ${config.color} py-2 text-sm font-semibold text-white opacity-0 transition-all duration-300 group-hover:opacity-100 group-focus-visible:opacity-100`}
               >
                 Select Role
