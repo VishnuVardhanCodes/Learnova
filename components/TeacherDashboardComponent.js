@@ -71,12 +71,61 @@ import ChartSkeleton from "@/components/ui/ChartSkeleton";
 import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
 import SkeletonCard from "@/components/ui/SkeletonCard";
 import AttendanceAnalytics from "@/components/dashboard/AttendanceAnalytics";
+
+import { db } from "@/lib/firebaseConfig";
+
+import { collection, getDocs, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
+const exportToCSV = (data) => {
+  const headers = ["Name", "Roll No", "Status", "Time", "Confidence"];
+  const rows = data.map((s) => [s.name, s.rollNo, s.status, s.time, s.confidence + "%"]);
+  const csvContent = [headers, ...rows].map((r) => r.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `attendance_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const exportToPDF = (data) => {
+  const printWindow = window.open("", "_blank");
+  const rows = data.map((s) => `
+    <tr>
+      <td>${s.name}</td>
+      <td>${s.rollNo}</td>
+      <td>${s.status.toUpperCase()}</td>
+      <td>${s.time}</td>
+      <td>${s.confidence}%</td>
+    </tr>`).join("");
+  printWindow.document.write(`
+    <html><head><title>Attendance Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      h2 { color: #333; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+      th { background: #6d28d9; color: white; }
+      tr:nth-child(even) { background: #f9f9f9; }
+    </style></head>
+    <body>
+      <h2>Attendance Report — ${new Date().toLocaleDateString()}</h2>
+      <table><thead><tr>
+        <th>Name</th><th>Roll No</th><th>Status</th><th>Time</th><th>Confidence</th>
+      </tr></thead><tbody>${rows}</tbody></table>
+    </body></html>`);
+  printWindow.document.close();
+  printWindow.print();
+};
+const TeacherDashboard = () => {
+
 import AttendanceRiskDashboard from "@/components/dashboard/AttendanceRiskDashboard";
 import { AttendancePasscodeModal } from "./dashboard/AttendancePasscodeModal";
 import { ExceptionRequestsList } from "./dashboard/ExceptionRequestsList";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useCurriculum } from "@/hooks/useCurriculum";
 import { apiFetch } from "@/lib/apiClient";
+
 
 const AttendanceTrendsChart = dynamic(
   () => import("@/components/charts/AttendanceTrendsChart"),
