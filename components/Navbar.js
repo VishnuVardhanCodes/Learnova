@@ -472,7 +472,7 @@ export function Navbar() {
                               <button
                                 onClick={markAllAsRead}
                                 className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                              >
+                               aria-label="Action button">
                                 Mark all read
                               </button>
                             )}
@@ -597,7 +597,7 @@ export function Navbar() {
                             role="menuitem"
                             onClick={handleLogout}
                             className="w-full flex items-center px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/8 transition-colors gap-2.5"
-                          >
+                           aria-label="Action button">
                             <LogOut className="h-4 w-4" /> Logout
                           </button>
                         </motion.div>
@@ -733,6 +733,7 @@ export function Navbar() {
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setIsMenuOpen(false)}
                   className="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/8 transition-colors"
+                  aria-label="Close menu"
                 >
                   <X className="h-4 w-4 text-zinc-400" />
                 </motion.button>

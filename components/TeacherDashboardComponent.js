@@ -998,7 +998,7 @@ const TeacherDashboard = () => {
                 </div>
               </ExportDropdown>
 
-              <button className="w-full bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 border border-green-500/30 text-foreground dark:text-white p-3 rounded-xl transition-colors text-left">
+              <button className="w-full bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 border border-green-500/30 text-foreground dark:text-white p-3 rounded-xl transition-colors text-left" aria-label="Action button">
                 <div className="flex items-center space-x-3">
                   <Upload className="w-5 h-5 text-green-400" />
                   <div>
@@ -1010,7 +1010,7 @@ const TeacherDashboard = () => {
                 </div>
               </button>
 
-              <button className="w-full bg-gradient-to-r from-orange-600/20 to-red-600/20 hover:from-orange-600/30 hover:to-red-600/30 border border-orange-500/30 text-foreground dark:text-white p-3 rounded-xl transition-colors text-left">
+              <button className="w-full bg-gradient-to-r from-orange-600/20 to-red-600/20 hover:from-orange-600/30 hover:to-red-600/30 border border-orange-500/30 text-foreground dark:text-white p-3 rounded-xl transition-colors text-left" aria-label="Action button">
                 <div className="flex items-center space-x-3">
                   <Bell className="w-5 h-5 text-orange-400" />
                   <div>
@@ -1025,7 +1025,7 @@ const TeacherDashboard = () => {
               <button
                 onClick={handleExportCSV}
                 className="w-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border border-purple-500/30 text-foreground dark:text-white p-3 rounded-xl transition-colors text-left"
-              >
+               aria-label="Action button">
                 <div className="flex items-center space-x-3">
                   <Download className="w-5 h-5 text-purple-400" />
                   <div>
@@ -1293,7 +1293,7 @@ const TeacherDashboard = () => {
                   <button
                     onClick={generatePasscode}
                     className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2"
-                  >
+                   aria-label="Action button">
                     <Key className="w-3 h-3" />
                     Generate Passcode
                   </button>
@@ -1301,7 +1301,7 @@ const TeacherDashboard = () => {
                 <button
                   onClick={handleExportCSV}
                   className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2"
-                >
+                 aria-label="Action button">
                   <Download className="w-3 h-3" />
                   Export Data
                 </button>
