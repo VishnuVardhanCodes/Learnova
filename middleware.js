@@ -3,6 +3,22 @@ import * as jose from "jose";
 import { Redis } from "@upstash/redis";
 import { validateCsrfOriginAndReferer, validateCsrfRequest } from "@/lib/csrf";
 
+let redisClient;
+
+function getRedisClient() {
+  if (
+    !redisClient &&
+    process.env.UPSTASH_REDIS_REST_URL &&
+    process.env.UPSTASH_REDIS_REST_TOKEN
+  ) {
+    redisClient = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+  return redisClient;
+}
+
 const FIREBASE_PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 const FIREBASE_AUTH_DOMAIN = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
 const FIREBASE_API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
@@ -12,6 +28,39 @@ const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
 // Allowed clock skew when validating JWT `exp` (seconds). Keep small to limit
 // acceptance window for expired or revoked tokens.
 const CLOCK_TOLERANCE_SECONDS = 60;
+
+// ─── Rate Limiting ────────────────────────────────────────────────────────────
+// Uses Upstash Redis (Vercel KV) as a centralized store so that rate limit
+// state is shared across all serverless/edge instances, preventing bypass
+// attacks. Falls back to per-instance memory only during local development.
+
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = 5;
+
+let redisClient;
+
+function getRedis() {
+  if (!redisClient) {
+    redisClient = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+  return redisClient;
+}
+
+// Dev-only in-memory fallback (never used in production)
+const devRateLimitMap = new Map();
+
+const AUTH_RATE_LIMITED_PATHS = [
+  "/api/auth/login",
+  "/api/auth/signup",
+  "/api/auth/logout",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/auth/verify-email",
+  "/api/auth/verify-otp",
+];
 
 const PUBLIC_API_PATHS = [
   "/api/auth/csrf",
@@ -246,9 +295,39 @@ export async function middleware(request) {
   }
   const isUnsafeMethod = !["GET", "HEAD", "OPTIONS"].includes(request.method);
 
+  // Clean up expired rate limit entries periodically
+  cleanupRateLimitMap();
+
   // NOTE: CSRF validation applies only for cookie-authenticated requests.
   // Requests authenticated via Authorization: Bearer <token> are not CSRF-vulnerable.
   // Defer CSRF validation until after token extraction/verification below.
+
+  // ── 1. Rate limiting for auth API routes ──
+  if (isAuthRoute(pathname)) {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+
+    const { allowed, remaining, retryAfter } = await rateLimit(ip, pathname, request);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Too many attempts. Please try again in ${retryAfter} seconds.`,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfter),
+            "X-RateLimit-Limit": String(RATE_LIMIT_MAX),
+            "X-RateLimit-Remaining": "0",
+          },
+        }
+      );
+    }
+  }
 
   const requestHeaders = new Headers(request.headers);
 
@@ -271,6 +350,28 @@ export async function middleware(request) {
       isTokenValid = true;
       isEmailVerified = !!payload.email_verified;
       userRole = payload.role || null;
+    }
+  }
+
+  if (isTokenValid && pathname.startsWith("/api/")) {
+    const sessionId =
+      request.cookies.get("sessionId")?.value ||
+      request.headers.get("x-session-id");
+    if (sessionId) {
+      try {
+        const redis = getRedisClient();
+        if (redis) {
+          const exists = await redis.exists(`session:${sessionId}`);
+          if (exists !== 1) {
+            return NextResponse.json(
+              { error: "Session expired or terminated concurrently" },
+              { status: 401 }
+            );
+          }
+        }
+      } catch {
+        // Redis unavailable — continue without session validation
+      }
     }
   }
 
@@ -437,6 +538,14 @@ export async function middleware(request) {
   }
 
   return response;
+}
+
+// Exported for unit testing (in-memory fallback behavior)
+export { isAuthRoute, rateLimit, cleanupRateLimitMap, devRateLimitMap, resetForTest };
+
+// Test helper to control cleanup timer
+function resetForTest(now) {
+  lastCleanupTime = now;
 }
 
 export const config = {
