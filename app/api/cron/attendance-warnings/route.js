@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import admin from "firebase-admin";
 import { authorizeCronRequest } from "@/lib/cronAuth";
 import { connectDb } from "@/lib/mongodb";
-import { initializeFirebase } from "@/lib/firebase-admin";
 import { evaluateStudentAttendance } from "@/lib/attendanceUtils";
 
 export const dynamic = "force-dynamic";
@@ -86,25 +84,6 @@ async function getRecentWarningUserIds(db, userIds, cooldownDate) {
   return new Set(checks.filter(Boolean));
 }
 
-async function loadFirestoreAttendanceByUser(firestore, studentIds) {
-  const attendanceByUser = new Map();
-
-  await Promise.all(
-    studentIds.map(async (uid) => {
-      const snapshot = await firestore
-        .collection("attendance_records")
-        .where("userId", "==", uid)
-        .get();
-
-      attendanceByUser.set(
-        uid,
-        snapshot.docs.map((doc) => doc.data())
-      );
-    })
-  );
-
-  return attendanceByUser;
-}
 
 async function sendWarningEmails(emailsToSend) {
   const hasEmailConfig =
@@ -245,76 +224,65 @@ export async function GET(request) {
       const instituteStudents = studentsByInstitute.get(instituteId) || [];
       if (instituteStudents.length === 0) continue;
 
-      // Process students in batches to keep memory usage bounded
-      for (let i = 0; i < instituteStudents.length; i += STUDENT_BATCH_SIZE) {
-        const batch = instituteStudents.slice(i, i + STUDENT_BATCH_SIZE);
-        const batchUids = batch.map(s => s.uid || s.firebaseUid).filter(Boolean);
-        if (batchUids.length === 0) continue;
+      const instituteStudentUids = instituteStudents
+        .map((s) => s.uid || s.firebaseUid)
+        .filter(Boolean);
 
-        // Load attendance records for this batch only
-        const records = await db.collection("attendance").find({
-          userId: { $in: batchUids },
-          instituteId,
-        }).toArray();
+      const attendanceRecords = await db
+        .collection("attendance")
+        .find({ userId: { $in: instituteStudentUids }, instituteId })
+        .toArray();
 
-        const attendanceByUser = new Map(batchUids.map(uid => [uid, []]));
-        for (const record of records) {
-          const userRecords = attendanceByUser.get(record.userId);
-          if (userRecords) {
-            userRecords.push(record);
-          }
+      const attendanceByUser = new Map();
+      for (const record of attendanceRecords) {
+        if (!attendanceByUser.has(record.userId)) {
+          attendanceByUser.set(record.userId, []);
+        }
+        attendanceByUser.get(record.userId).push(record);
+      }
+
+      for (const student of instituteStudents) {
+        const studentUid = student.uid || student.firebaseUid;
+        if (!studentUid) continue;
+
+        if (recentWarningUserIds.has(studentUid)) {
+          continue;
         }
 
-        // Check cooldown for this batch only
-        const cooldownSet = new Set();
-        const recentLogs = await db.collection("warning_logs").find({
-          userId: { $in: batchUids },
-          createdAt: { $gte: cooldownDate },
-        }).project({ userId: 1 }).toArray();
-        for (const log of recentLogs) {
-          cooldownSet.add(log.userId);
-        }
+        const studentAttendance = attendanceByUser.get(studentUid) || [];
+        const evaluation = evaluateStudentAttendance(studentAttendance, threshold);
 
-        for (const student of batch) {
-          const uid = student.uid || student.firebaseUid;
-          if (!uid) continue;
+        if (evaluation.isBelowThreshold) {
+          const email = student.email;
+          const name = student.name || student.fullName || "Student";
 
-          if (cooldownSet.has(uid)) continue;
+          notificationsToInsert.push({
+            userId: studentUid,
+            title: "Low Attendance Warning",
+            message: `Your current attendance is ${evaluation.percentage}%, which is below the required ${threshold}%. Please improve your attendance.`,
+            type: "warning",
+            read: false,
+            createdAt: now,
+          });
 
-          const studentAttendance = attendanceByUser.get(uid) || [];
-          const evaluation = evaluateStudentAttendance(studentAttendance, threshold);
+          warningLogsToInsert.push({
+            userId: studentUid,
+            percentage: evaluation.percentage,
+            threshold,
+            createdAt: now,
+          });
 
-          if (evaluation.isBelowThreshold) {
-            const email = student.email;
-            const name = student.name || student.fullName || "Student";
-
-            notificationsToInsert.push({
-              userId: uid,
-              title: "Low Attendance Warning",
-              message: `Your current attendance is ${evaluation.percentage}%, which is below the required ${threshold}%. Please improve your attendance.`,
-              type: "warning",
-              read: false,
-              createdAt: now,
-            });
-
-            warningLogsToInsert.push({
-              userId: uid,
-              percentage: evaluation.percentage,
+          if (email) {
+            emailsToSend.push({
+              to_email: email,
+              to_name: name,
+              attendance_percentage: evaluation.percentage,
               threshold,
-              createdAt: now,
+              threshold,
             });
-
-            if (email) {
-              emailsToSend.push({
-                to_email: email,
-                to_name: name,
-                attendance_percentage: evaluation.percentage,
-                threshold,
-              });
-            }
-
-            totalWarnings++;
           }
+
+          totalWarnings++;
         }
 
         if (notificationsToInsert.length >= FLUSH_THRESHOLD) {

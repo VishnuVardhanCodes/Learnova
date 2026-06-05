@@ -12,9 +12,9 @@
  */
 
 import crypto from 'crypto';
-import { createLogger } from './logger';
+import loggerInstance from './logger';
 
-const logger = createLogger('maintenance-security');
+const logger = loggerInstance;
 
 /**
  * Maintenance Security Configuration
@@ -25,10 +25,15 @@ function getTokenExpiryMinutes() {
 }
 
 const MAINTENANCE_CONFIG = {
-  // Maximum bypass attempts per hour before lockout
-  MAX_BYPASS_ATTEMPTS_PER_HOUR: parseInt(process.env.MAINTENANCE_MAX_ATTEMPTS_PER_HOUR || '10'),
-  // Admin role requirement check
-  REQUIRE_ADMIN_ROLE: process.env.MAINTENANCE_REQUIRE_ADMIN_ROLE === 'true',
+  get TOKEN_EXPIRY_MINUTES() {
+    return parseInt(process.env.MAINTENANCE_TOKEN_EXPIRY_MINUTES || '60');
+  },
+  get MAX_BYPASS_ATTEMPTS_PER_HOUR() {
+    return parseInt(process.env.MAINTENANCE_MAX_ATTEMPTS_PER_HOUR || '10');
+  },
+  get REQUIRE_ADMIN_ROLE() {
+    return process.env.MAINTENANCE_REQUIRE_ADMIN_ROLE === 'true';
+  },
 };
 
 /**
