@@ -39,6 +39,7 @@ import BulkImportModal from "./dashboard/BulkImportModal";
 import dynamic from "next/dynamic";
 import ChartSkeleton from "@/components/ui/ChartSkeleton";
 import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
+import InstituteMeetingAnalytics from "@/components/InstituteMeetingAnalytics";
 
 const AttendanceTrendsChart = dynamic(
   () => import("@/components/charts/AttendanceTrendsChart"),
@@ -385,6 +386,8 @@ const InstituteDashboard = () => {
           color="yellow"
         />
       </div>
+
+      <InstituteMeetingAnalytics />
 
       {/* Quick Actions */}
       <div className="bg-card/40 dark:bg-black/40 backdrop-blur-xl rounded-2xl border border-border dark:border-white/10 p-6 shadow-2xl">

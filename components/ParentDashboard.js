@@ -42,6 +42,7 @@ import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
 import { Navbar } from "./Navbar";
 import { exportToCSV, exportToPDF } from "@/utils/exportUtils";
 import ExportDropdown from "@/components/ui/ExportDropdown";
+import ParentMeetingsSection from "@/components/ParentMeetingsSection";
 
 const ParentDashboard = () => {
   const { user, userProfile } = useAuth();
@@ -444,7 +445,7 @@ const ParentDashboard = () => {
       {/* Navigation Tabs */}
       <div className="max-w-7xl mx-auto px-6 mb-6">
         <div className="flex items-center gap-2 border-b border-white/10 pb-2 flex-wrap">
-          {["overview", "attendance", "academics", "notices"].map((tab) => (
+          {["overview", "attendance", "academics", "notices", "meetings"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -454,7 +455,7 @@ const ParentDashboard = () => {
                   : "border-transparent text-slate-400 hover:text-white hover:bg-slate-800/40"
               }`}
             >
-              {tab === "notices" ? "Notice Board" : tab}
+              {tab === "notices" ? "Notice Board" : tab === "meetings" ? "Meetings" : tab}
             </button>
           ))}
         </div>
@@ -922,6 +923,14 @@ const ParentDashboard = () => {
                   </div>
                 )}
               </div>
+            )}
+
+            {activeTab === "meetings" && selectedChild && (
+              <ParentMeetingsSection
+                instituteId={selectedChild.instituteId}
+                studentId={selectedChild.uid}
+                studentName={selectedChild.name}
+              />
             )}
           </div>
         )}

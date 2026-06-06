@@ -82,6 +82,7 @@ import { ExceptionRequestsList } from "./dashboard/ExceptionRequestsList";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useCurriculum } from "@/hooks/useCurriculum";
 import { apiFetch } from "@/lib/apiClient";
+import TeacherMeetingManagement from "@/components/TeacherMeetingManagement";
 
 
 const AttendanceTrendsChart = dynamic(
@@ -1243,6 +1244,7 @@ const TeacherDashboard = () => {
             { id: "dashboard", label: "Dashboard", icon: BarChart3 },
             { id: "curriculum", label: "Curriculum", icon: BookOpen },
             { id: "analytics", label: "Analytics", icon: TrendingUp },
+            { id: "meetings", label: "Meetings", icon: MessageSquare },
             { id: "schedule", label: "Schedule", icon: Calendar },
           ].map((tab) => (
             <button
@@ -1283,6 +1285,7 @@ const TeacherDashboard = () => {
         {activeTab === "dashboard" && renderDashboard()}
         {activeTab === "curriculum" && <CurriculumBuilder />}
         {activeTab === "analytics" && renderAnalytics()}
+        {activeTab === "meetings" && <TeacherMeetingManagement />}
         {activeTab === "schedule" && renderSchedule()}
       </div>
     </div>
