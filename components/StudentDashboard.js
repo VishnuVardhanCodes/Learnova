@@ -47,6 +47,11 @@ import BadgeGallery from "./gamification/BadgeGallery";
 import ComplaintForm from "@/components/ComplaintForm";
 import StreakTracker from "@/components/ui/StreakTracker";
 import AttendanceInsights from "@/components/AttendanceInsights";
+
+const StudentPerformanceCard = dynamic(
+  () => import("@/components/predictions/StudentPerformanceCard"),
+  { ssr: false, loading: () => <ChartSkeleton /> }
+);
 import ExportDropdown from "@/components/ui/ExportDropdown";
 import { exportToCSV, exportToPDF } from "@/utils/exportUtils";
 import { toast } from "react-hot-toast";
@@ -443,6 +448,13 @@ const StudentDashboard = () => {
         </div>
         <AttendanceInsights recentActivity={recentActivity} />
       </div>
+
+      {/* AI Performance Prediction */}
+      {user?.uid && (
+        <div className="max-w-7xl mx-auto mt-6 px-6">
+          <StudentPerformanceCard studentId={user.uid} />
+        </div>
+      )}
 
       {/* Adaptive Content Sections */}
       {skillPath === "advanced" && (

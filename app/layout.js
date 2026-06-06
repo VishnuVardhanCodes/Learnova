@@ -1,10 +1,4 @@
 
-// 1. Enhanced layout.js with proper structured data for sitelinks
-import SyllabusAnalytics from '../components/SyllabusAnalytics';
-import LearningStreakDashboard from '../components/LearningStreakDashboard';
-import { NotificationProvider } from "@/contexts/NotificationContext";
-import { FirestoreProvider } from "@/contexts/FirestoreContext";
-
 // ─── Next.js core & React ────────────────────────────────────────────────────
 
 import React from "react";

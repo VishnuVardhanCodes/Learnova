@@ -42,6 +42,7 @@ import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
 import { Navbar } from "./Navbar";
 import { exportToCSV, exportToPDF } from "@/utils/exportUtils";
 import ExportDropdown from "@/components/ui/ExportDropdown";
+import ParentPredictionView from "@/components/predictions/ParentPredictionView";
 
 const ParentDashboard = () => {
   const { user, userProfile } = useAuth();
@@ -528,6 +529,11 @@ const ParentDashboard = () => {
                     </div>
                   </div>
                 </div>
+
+                <ParentPredictionView
+                  studentId={selectedChild.uid}
+                  childName={selectedChild.name}
+                />
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Attendance Trends */}

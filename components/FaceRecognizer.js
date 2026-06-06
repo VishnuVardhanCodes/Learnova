@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import useLabels from "@/components/useLabels";
 import { recordAttendance } from "@/services/attendanceService";
@@ -69,10 +69,6 @@ export default function FaceRecognizer({ authUser }) {
     isMounted.current = true;
     return stopAllMedia;
   }, [stopAllMedia]);
-
-  const [isOffline, setIsOffline] = useState(
-    typeof window !== "undefined" ? !navigator.onLine : false
-  );
 
   const MODEL_URL = "/models";
   const labels = fetchedLabels;
@@ -383,15 +379,6 @@ export default function FaceRecognizer({ authUser }) {
     );
   };
 
-  const processVideo = async () => {
-    if (!isMounted.current || !videoRef.current || videoRef.current.paused) return;
-
-    let faceapi = faceapiRef.current;
-    if (!faceapi) {
-      faceapi = await import("face-api.js");
-      faceapiRef.current = faceapi;
-    }
-    if (!isMounted.current || abortControllerRef.current?.signal.aborted) return;
   const processVideo = async (signal) => {
     if (
       !videoRef.current ||

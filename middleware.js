@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import * as jose from "jose";
-import { Redis } from "@upstash/redis";
+import { Redis } from "@upstash/redis/cloudflare";
 import { validateCsrfOriginAndReferer, validateCsrfRequest } from "@/lib/csrf";
 
 let redisClient;
@@ -37,18 +37,6 @@ const CLOCK_TOLERANCE_SECONDS = 60;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX = 5;
 
-let redisClient;
-
-function getRedis() {
-  if (!redisClient) {
-    redisClient = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    });
-  }
-  return redisClient;
-}
-
 // Dev-only in-memory fallback (never used in production)
 const devRateLimitMap = new Map();
 
@@ -61,6 +49,101 @@ const AUTH_RATE_LIMITED_PATHS = [
   "/api/auth/verify-email",
   "/api/auth/verify-otp",
 ];
+
+function isAuthRoute(pathname) {
+  return AUTH_RATE_LIMITED_PATHS.some((path) => pathname.startsWith(path));
+}
+
+async function rateLimit(ip, pathname, request) {
+  const cookies =
+    typeof request.cookies?.get === "function"
+      ? request.cookies
+      : { get: () => undefined };
+  const sessionFingerprint =
+    cookies.get("__Secure-next-auth.session-token")?.value ||
+    cookies.get("next-auth.session-token")?.value ||
+    cookies.get("authToken")?.value ||
+    "";
+  const key = `ratelimit:auth:${ip}_${pathname}_${sessionFingerprint.slice(0, 16)}`;
+  const limit = RATE_LIMIT_MAX;
+  const windowMs = RATE_LIMIT_WINDOW_MS;
+
+  const redis = getRedisClient();
+
+  if (redis) {
+    try {
+      const now = Date.now();
+      const windowStart = now - windowMs;
+
+      const multi = redis.multi();
+      multi.zremrangebyscore(key, 0, windowStart);
+      multi.zadd(key, { score: now, member: `${now}-${Math.random()}` });
+      multi.zcard(key);
+      multi.expire(key, Math.ceil(windowMs / 1000));
+      const [, , count] = await multi.exec();
+
+      const current = Number(count);
+      if (current > limit) {
+        const oldest = await redis.zrange(key, 0, 0, { withScores: true });
+        const resetTime =
+          oldest.length >= 2 ? Number(oldest[1]) + windowMs : now + windowMs;
+        const retryAfter = Math.ceil((resetTime - now) / 1000);
+        return { allowed: false, remaining: 0, retryAfter };
+      }
+
+      return { allowed: true, remaining: limit - current };
+    } catch (err) {
+      console.error("[rate-limit] Upstash Redis error — denying request:", err);
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfter: Math.ceil(windowMs / 1000),
+      };
+    }
+  }
+
+  const entry = devRateLimitMap.get(key);
+  const now = Date.now();
+
+  if (!entry || now > entry.resetTime) {
+    devRateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
+    return { allowed: true, remaining: limit - 1 };
+  }
+
+  if (entry.count >= limit) {
+    const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+    return { allowed: false, remaining: 0, retryAfter };
+  }
+
+  entry.count += 1;
+  return { allowed: true, remaining: limit - entry.count };
+}
+
+let lastCleanupTime = 0;
+
+function cleanupRateLimitMap() {
+  try {
+    const now = Date.now();
+
+    if (now - lastCleanupTime < 5 * 60 * 1000) return;
+
+    lastCleanupTime = now;
+
+    if (devRateLimitMap.size === 0) return;
+
+    for (const [key, entry] of devRateLimitMap.entries()) {
+      if (now > entry.resetTime) {
+        devRateLimitMap.delete(key);
+      }
+    }
+  } catch {
+    // Cleanup failure must never crash the middleware
+  }
+}
+
+function resetForTest(now) {
+  lastCleanupTime = now;
+}
 
 const PUBLIC_API_PATHS = [
   "/api/auth/csrf",
@@ -88,7 +171,7 @@ function buildPageCsp() {
       ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com"
       : "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.public.blob.vercel-storage.com https://github.com https://www.google-analytics.com https://avatars.githubusercontent.com",
     "connect-src 'self' blob: https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebase.io https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google-analytics.com https://region1.google-analytics.com https://*.public.blob.vercel-storage.com https://api.emailjs.com https://api.github.com",
     "media-src 'self' blob:",
@@ -363,7 +446,6 @@ export async function middleware(request) {
     }
   }
 
-  if (pathname.startsWith("/api/") && isUnsafeMethod) {
   if (isTokenValid && pathname.startsWith("/api/")) {
     const sessionId =
       request.cookies.get("sessionId")?.value ||
@@ -552,12 +634,13 @@ export async function middleware(request) {
 }
 
 // Exported for unit testing (in-memory fallback behavior)
-export { isAuthRoute, rateLimit, cleanupRateLimitMap, devRateLimitMap, resetForTest };
-
-// Test helper to control cleanup timer
-function resetForTest(now) {
-  lastCleanupTime = now;
-}
+export {
+  isAuthRoute,
+  rateLimit,
+  cleanupRateLimitMap,
+  devRateLimitMap,
+  resetForTest,
+};
 
 export const config = {
   matcher: [
