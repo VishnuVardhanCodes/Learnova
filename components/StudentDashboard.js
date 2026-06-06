@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 
 import {
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   Sparkles,
   AlertTriangle,
+  ChevronRight,
 } from "lucide-react";
 
 import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
@@ -434,6 +436,38 @@ const StudentDashboard = () => {
             getInitials={getUserInitials}
           />
         </div>
+      </div>
+
+      {/* Achievements Showcase Quick Access Banner */}
+      <div className="max-w-7xl mx-auto mt-6 px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-indigo-950/50 via-purple-950/40 to-black border border-indigo-500/25 rounded-2xl p-6 text-white backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-500/15 rounded-xl text-indigo-300">
+              <Award className="w-8 h-8" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                Achievements & Digital Certificates Showcase
+                <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded-full border border-cyan-800/40">
+                  New
+                </span>
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                View your unlocked digital credentials, attendance badges, and download official verified PDFs.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/student/achievements"
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold rounded-xl text-center transition-all active:scale-95 shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-1.5"
+          >
+            Showcase Hub <ChevronRight className="w-4 h-4" />
+          </Link>
+        </motion.div>
       </div>
 
       {/* Attendance Insights */}

@@ -33,6 +33,7 @@ import {
   BellOff,
   HeartPulse,
   Calendar,
+  Award,
 } from "lucide-react";
 
 // ── Animation Variants ──────────────────────────────────────────────────────
@@ -268,6 +269,16 @@ export function Navbar() {
       label: "Dashboard",
       key: "dashboard",
     },
+    ...(userProfile?.role === "student"
+      ? [
+          {
+            href: "/student/achievements",
+            icon: Award,
+            label: "Achievements",
+            key: "achievements",
+          },
+        ]
+      : []),
     { href: "/settings", icon: Settings, label: "Settings", key: "settings" },
   ].filter((item) => !(item.key === "dashboard" && item.href === "/profile"));
   const handleImageError = (e) => {
