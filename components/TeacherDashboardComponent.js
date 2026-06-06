@@ -82,7 +82,8 @@ import { ExceptionRequestsList } from "./dashboard/ExceptionRequestsList";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useCurriculum } from "@/hooks/useCurriculum";
 import { apiFetch } from "@/lib/apiClient";
-
+import { syncOfflineQueue, getPendingRecordsCount } from "@/services/offlineSyncQueue";
+import { auth } from "@/lib/firebaseConfig";
 
 const AttendanceTrendsChart = dynamic(
   () => import("@/components/charts/AttendanceTrendsChart"),
@@ -142,6 +143,49 @@ const TeacherDashboard = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   const isInitialFetchRef = useRef(true);
+
+  // Background Sync Effect
+  useEffect(() => {
+    const handleOnlineSync = async () => {
+      if (!user) return;
+      const count = await getPendingRecordsCount();
+      if (count === 0) return;
+
+      toast.loading(`Syncing ${count} offline attendance records...`, { id: 'offline-sync' });
+      
+      const token = await user.getIdToken();
+      const result = await syncOfflineQueue(async (record) => {
+        try {
+          const res = await fetch("/api/attendance/record", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(record),
+          });
+          return res.ok;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      if (result.success) {
+        toast.success(`Successfully synced ${result.synced} records`, { id: 'offline-sync' });
+      } else {
+        toast.error(`Failed to sync ${result.failed} records`, { id: 'offline-sync' });
+      }
+    };
+
+    window.addEventListener("online", handleOnlineSync);
+    
+    // Attempt sync on mount if online
+    if (navigator.onLine && user) {
+      handleOnlineSync();
+    }
+
+    return () => window.removeEventListener("online", handleOnlineSync);
+  }, [user]);
 
   const handleExport = (format) => {
     setIsExporting(true);
